@@ -2,7 +2,7 @@
 
 ## Working approach
 
-- **Plan before coding on non-trivial work.** Explore and understand the relevant code first, propose a short plan, confirm direction, then implement. Trivial/mechanical edits don't need this. Pairs with the no-auto-commit checkpoint below.
+- **Scope before building, then run with it.** Plan non-trivial work — explore the relevant code, propose a short plan, confirm direction — and for large or ambiguous features, interview with `AskUserQuestion` (implementation, UX, edge cases, tradeoffs) and write a short spec rather than guessing. Trivial/mechanical edits skip this. Pairs with the no-auto-commit checkpoint below.
 
 - **Explore with read-only subagents.** For broad "where/how does X work" searches across many files, spin up exploration subagents (e.g. the Explore agent) and bring back the conclusions, rather than reading lots of files into the main context. Keeps the working context lean.
 
@@ -14,15 +14,11 @@
 
 - **Capture corrections.** When the user corrects me or states a durable preference, proactively record it — to memory, or the relevant `CLAUDE.md` — so I don't repeat the mistake. ("Compounding engineering.")
 
-- **Self-critique before declaring done.** Be honest about uncertainty, catch my own bugs before claiming victory, and when a fix feels mediocre, reconsider for a cleaner solution rather than shipping the first thing that works.
-
 - **Delegation over hand-holding.** Treat a crisp brief as a delegation: do the work and report back when done or when there's a real blocking question — rather than narrating every step and asking frequently. Ask up front only when the request is genuinely ambiguous.
-
-- **Interview before big features.** For large or ambiguous features, use `AskUserQuestion` to interview the user about implementation, UX, edge cases, and tradeoffs, and write a short spec before coding — rather than guessing and building the wrong thing.
 
 - **Fix root causes, not symptoms.** Never mask a failure — don't swallow exceptions, silence a linter/type error, or hardcode around a broken path. Diagnose the underlying cause and fix that.
 
-- **Step back after repeated failure.** If the same problem fails ~twice, stop retrying in a polluted context: reconsider the approach from scratch and surface the blocker, rather than piling on more attempts.
+- **Step back after repeated failure.** If the same problem fails ~twice, stop retrying in a polluted context: reconsider the approach from scratch and surface the blocker, rather than piling on more attempts. Likewise, when a fix merely works but feels mediocre, prefer a cleaner solution over shipping the first thing that passes.
 
 ## Commits & git
 
@@ -34,21 +30,9 @@
 
 ## Code quality
 
-- **Clean Code is the standing bar for everything committed.** Hold Robert C. Martin's *Clean Code* / *The Clean Coder* principles while writing, in every repo — not just on an on-demand review pass. Each commit is a coherent, working increment (type-check + tests green; never WIP/broken). Boy Scout Rule, scoped to what I'm already touching.
-  - **Names** reveal intent; no type/scope encodings; replace magic numbers/strings with named constants.
-  - **Functions** small, one thing, one level of abstraction, few args, no boolean/flag params (split instead), no hidden side effects.
-  - **Comments**: prefer self-documenting code; comment *why* not *what*; never leave commented-out code.
-  - **DRY** but not over-abstracted — YAGNI beats premature generalization; the wrong abstraction costs more than duplication.
-  - **SOLID** + Law of Demeter; prefer polymorphism / lookup maps over sprawling type-switch chains.
-  - **Tests** are F.I.R.S.T. and written test-first.
-  - Readability over cleverness/brevity, always.
+- **Clean Code is the standing bar for everything committed.** Hold *Clean Code* / *The Clean Coder* principles while writing, in every repo — not just on a review pass: intention-revealing names (no type/scope encodings, named constants over magic values); small single-purpose functions (one level of abstraction, few args, no flag params, no hidden side effects); comment *why* not *what* and never leave commented-out code; DRY without over-abstraction (YAGNI beats premature generalization); SOLID + Law of Demeter (lookup maps over type-switch chains); tests F.I.R.S.T. and test-first; readability over cleverness, always. Boy Scout Rule scoped to what I'm touching; each commit a coherent, working increment (type-check + tests green, never WIP/broken).
 
-- **Prefer `const` over `let` in TypeScript.** Treat `let` as a code smell needing justification. After writing, scan for `let` and ask whether a single-expression form fits:
-  - `let x; if (c) x=a; else x=b;` → `const x = c ? a : b;`
-  - pre-declared + filled in try/catch → a single `const = (() => { try {...} catch (err) {...} })()` IIFE, or a helper
-  - `let acc=[]; for(...) acc.push(...)` → `const acc = items.flatMap(...)` / `.map(...)` / `.reduce(...)`
-  - Legitimate `let` (don't churn): counters mutated across async callbacks where parallelism blocks a clean reduce; genuine sequential state where each step depends on the prior and no functional form is cleaner.
-  - When in doubt, prefer `const` + a small helper over `let` + branching mutation.
+- **Prefer `const` over `let` in TypeScript.** Treat `let` as a code smell needing justification; after writing, scan for it and check whether a single-expression form fits — e.g. `let x; if (c) x=a; else x=b;` → `const x = c ? a : b;`, accumulator loops → `.map`/`.flatMap`/`.reduce`, try/catch fill-in → an IIFE or helper. Legitimate `let` (don't churn): counters mutated across async callbacks where parallelism blocks a clean reduce, or genuine sequential state where each step depends on the prior and no functional form is cleaner.
 
 ## File output format
 
