@@ -26,26 +26,10 @@
 
 - **No Claude attribution.** Omit the "🤖 Generated with [Claude Code](https://claude.com/claude-code)" footer from PR bodies, and omit the `Co-Authored-By: Claude ...` trailer from commit messages. Applies to amends and follow-up commits, not just the first.
 
-- **No "Closes" suffix in PRs.** Don't add `Closes NEO-N` / `Fixes #N` / `Resolves ...` trailers to PR descriptions. (A ticket ID in the commit/PR *title* is fine where a repo requires it — just not a closing suffix in the body.)
-
 ## Code quality
 
-- **Clean Code is the standing bar for everything committed.** Hold *Clean Code* / *The Clean Coder* principles while writing, in every repo — not just on a review pass: intention-revealing names (no type/scope encodings, named constants over magic values); small single-purpose functions (one level of abstraction, few args, no flag params, no hidden side effects); comment *why* not *what* and never leave commented-out code; DRY without over-abstraction (YAGNI beats premature generalization); SOLID + Law of Demeter (lookup maps over type-switch chains); tests F.I.R.S.T. and test-first; readability over cleverness, always. Boy Scout Rule scoped to what I'm touching; each commit a coherent, working increment (type-check + tests green, never WIP/broken).
-
-- **Prefer `const` over `let` in TypeScript.** Treat `let` as a code smell needing justification; after writing, scan for it and check whether a single-expression form fits — e.g. `let x; if (c) x=a; else x=b;` → `const x = c ? a : b;`, accumulator loops → `.map`/`.flatMap`/`.reduce`, try/catch fill-in → an IIFE or helper. Legitimate `let` (don't churn): counters mutated across async callbacks where parallelism blocks a clean reduce, or genuine sequential state where each step depends on the prior and no functional form is cleaner.
+- **Clean Code is the standing bar.** Apply *Clean Code* / *The Clean Coder* principles continuously while writing, not just on a review pass — readability over cleverness, tests first. Boy Scout Rule scoped to what I'm touching; every commit a coherent, working increment (type-check + tests green, never WIP/broken).
 
 ## File output format
 
-- **Decide by who renders the file.**
-  - **Inside a git repository → use GitHub-flavored Markdown for `.md` files.** GitHub sanitizes HTML in Markdown (strips `<script>`, `<style>`, inline `style=`, classes, inline `<svg>`), so rich HTML renders broken there. GFM already covers most needs: native tables, ` ```mermaid ` diagrams, `$LaTeX$` math, `<details>`/`<summary>` collapsibles, `> [!NOTE]`/`> [!WARNING]` callouts, task lists, footnotes. This applies to anything the GitHub renderer processes — READMEs, `/docs`, wikis, issue/PR bodies.
-  - **Standalone artifact opened directly in a browser or shared outside GitHub → prefer rich, self-contained HTML.** For specs, plans, design/code reviews, reports, mockups — especially once content gets non-trivial (~100+ lines) or benefits from styled layout, SVG/diagrams, or interactive bits (sliders, forms, copy-as-JSON/prompt buttons). Make it self-contained (inline CSS/JS, no external deps) and mobile-responsive. Rationale: https://claude.com/blog/using-claude-code-the-unreasonable-effectiveness-of-html
-
-## macOS
-
-- **Open links in Chrome's work profile.** For work URLs (GitHub, Notion, dashboards, docs) use Google Chrome's work profile — not the default browser or Chrome's default profile (work URLs need the work profile's sign-in cookies). On this machine the work profile is named **`neo`** and lives in Chrome's `Default` directory. Use:
-
-  ```sh
-  open -na "Google Chrome" --args --profile-directory="Default" <url>
-  ```
-
-  `-n` forces a new instance so the requested profile is honored.
+- **Choose format by who renders the file.** Inside a git repo, use GitHub-flavored Markdown for `.md` files — GitHub sanitizes inline HTML, so rich HTML renders broken (READMEs, `/docs`, wikis, issue/PR bodies). Otherwise — opened in a browser or shared outside GitHub — prefer self-contained HTML. [Rationale](https://claude.com/blog/using-claude-code-the-unreasonable-effectiveness-of-html)
