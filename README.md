@@ -1,15 +1,24 @@
 # agents
 
-Version-controlled home for my Claude Code global configuration. The real files
+Version-controlled home for my Claude Code global configuration. The shared files
 live here and are **symlinked** into `~/.claude/` so Claude Code finds them at the
 paths it expects, while git tracks them here.
+
+Global instructions use a two-layer split:
+
+- **`CLAUDE.md` (this repo)** — shared instructions for every machine. Symlinked to
+  `~/.claude/REMOTE.md`.
+- **`~/.claude/CLAUDE.md` (local, not tracked)** — a thin file that imports the shared
+  layer with `@~/.claude/REMOTE.md`, then adds machine-specific preferences below it.
+  This is the file Claude Code actually loads; the import pulls in the shared layer.
 
 ## Layout
 
 ```
 agents/
-├── CLAUDE.md                       # personal global instructions (all projects)
+├── CLAUDE.md                       # shared global instructions (symlinked to ~/.claude/REMOTE.md)
 ├── scripts/
+│   ├── setup.sh                    # full setup: REMOTE.md symlink + local CLAUDE.md + skills
 │   └── link-skills.sh              # symlink skills/ into ~/.claude/skills/
 └── skills/
     └── self-improvement/
@@ -18,32 +27,35 @@ agents/
 
 ## Symlinks
 
-| Source of truth (this repo)                          | Symlink (where Claude Code reads it)        |
-| ---------------------------------------------------- | ------------------------------------------- |
-| `~/Dev/agents/CLAUDE.md`                             | `~/.claude/CLAUDE.md`                        |
-| `~/Dev/agents/skills/self-improvement`               | `~/.claude/skills/self-improvement`          |
+| Source of truth (this repo)            | Symlink (where Claude Code reads it) |
+| -------------------------------------- | ------------------------------------ |
+| `~/Dev/agents/CLAUDE.md`               | `~/.claude/REMOTE.md`                |
+| `~/Dev/agents/skills/self-improvement` | `~/.claude/skills/self-improvement`  |
 
-Edit files **here** (or through the symlink — same inode) and commit. Symlinks use
-absolute targets, so they resolve from any working directory.
+`~/.claude/CLAUDE.md` is **not** a symlink — it's a local, untracked file that imports
+`~/.claude/REMOTE.md` and holds this machine's own preferences. Edit shared instructions
+**here** (or through the `REMOTE.md` symlink — same inode) and commit; edit
+machine-specific ones directly in `~/.claude/CLAUDE.md`. Symlinks use absolute targets,
+so they resolve from any working directory.
 
 ## Setup (fresh machine, or to restore the links)
 
 ```sh
-ln -sfn ~/Dev/agents/CLAUDE.md ~/.claude/CLAUDE.md   # config file
-./scripts/link-skills.sh                              # every skill in skills/
+./scripts/setup.sh
 ```
 
-`-f` replaces an existing link; `-n` avoids nesting the link inside an existing
-directory symlink. `link-skills.sh` symlinks each directory under `skills/` into
-`~/.claude/skills/` (honoring `$CLAUDE_CONFIG_DIR`); it's idempotent, re-links stale
-symlinks, and skips any real file already in the way. Run
-`ls -l ~/.claude/CLAUDE.md ~/.claude/skills/` to confirm everything points back here.
+`setup.sh` (a) symlinks `~/.claude/REMOTE.md` to this repo's `CLAUDE.md`, (b) creates a
+fresh `~/.claude/CLAUDE.md` that imports it — only if one doesn't already exist, so local
+preferences are never clobbered — and (c) runs `link-skills.sh` to symlink every directory
+under `skills/` into `~/.claude/skills/`. It honors `$CLAUDE_CONFIG_DIR`, is idempotent,
+and is safe to re-run. Run `ls -l ~/.claude/REMOTE.md ~/.claude/skills/` to confirm
+everything points back here.
 
 ## Notes
 
-- **Moving this repo** is the one thing that breaks the links — re-run the setup
-  commands above after relocating it.
-- Adding a new global skill? Drop it under `skills/` and re-run
-  `./scripts/link-skills.sh` — no README change needed.
-- Adding a new config file (not a skill)? Add a matching `ln -sfn` line to the
-  setup block above.
+- **Moving this repo** is the one thing that breaks the links — re-run
+  `./scripts/setup.sh` after relocating it.
+- Adding a new global skill? Drop it under `skills/` and re-run `./scripts/setup.sh`
+  (or `./scripts/link-skills.sh`) — no README change needed.
+- Machine-specific instructions go in `~/.claude/CLAUDE.md`, below the import — not in
+  the tracked `CLAUDE.md`.
