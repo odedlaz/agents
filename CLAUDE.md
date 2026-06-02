@@ -26,6 +26,8 @@
 
 - **No Claude attribution.** Omit the "🤖 Generated with [Claude Code](https://claude.com/claude-code)" footer from PR bodies, and omit the `Co-Authored-By: Claude ...` trailer from commit messages. Applies to amends and follow-up commits, not just the first.
 
+- **Always use a worktree.** Do the work in a dedicated `git worktree` rather than switching branches in the primary checkout — keep the main working tree clean and the task isolated.
+
 ## Code quality
 
 - **Clean Code is the standing bar.** Apply *Clean Code* / *The Clean Coder* principles continuously while writing, not just on a review pass — readability over cleverness, tests first. Boy Scout Rule scoped to what I'm touching; every commit a coherent, working increment (type-check + tests green, never WIP/broken).
