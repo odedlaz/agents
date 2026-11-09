@@ -43,6 +43,12 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
+Repeat audit requests review only the diff from the last reviewed head to the
+current head. This also applies when the previous audit did not publish a GitHub
+review. Ask explicitly for a full audit to review the entire PR again. When the
+head is unchanged, the skill reports no new code changes and retains unresolved
+findings without posting another review.
+
 ## Review credentials and scripts
 
 `external-audit/approve` and `external-audit/request-changes` load `API_KEY`

@@ -28,15 +28,33 @@ pass settings in `target.options` and follow returned continuation instructions.
 Use supported delegation tools in other runtimes. Both auditors must start
 without parent history, implementation context or previous review text.
 
-Supply each only [the auditor prompt](references/auditor-prompt.md) unchanged,
-repository location, PR URL, both review SHAs, reviewer identity and peer contact
-or parent relay instructions. Both review the same range:
+Before selecting a range, check the audit history for this PR. A repeat request
+uses a diff audit by default, even if the user says only "audit this PR" or
+invokes `/xaudit` or `/external-audit` again. It does not require the words
+"re-review" or "diff".
 
-- `full-range` Initial or explicitly requested full review: real PR base to
-  current head. For a stacked PR, use that layer's base.
-- `delta-range` Re-review: previous reviewed head to current head. Retrieve the
-  previous SHA from the review record; ask if unavailable rather than silently
-  doing a full review. Record both SHAs in chat for the next re-review.
+Both auditors receive the same mode and SHA range:
+
+- `full-range` Use the real PR base to current head only for the first audit or
+  an explicit request for a full audit. For a stacked PR, use that layer's base.
+- `delta-range` For every repeat request, use the last head that both auditors
+  completed reviewing to the current head. Retrieve it from the prior chat audit
+  record or submitted review, including completed audits whose publication was
+  blocked or failed. Do not reset the range to the PR base.
+
+If a repeat request has no recoverable previous SHA, ask for it. If the commit
+is not available locally, fetch it; do not replace it with a merge base or start
+an unrequested full audit. Compare the two supplied commits directly. If both
+SHAs are equal, report that there are no new code changes, retain prior unresolved
+findings, and do not start reviewers or submit a duplicate GitHub review. An
+unpublished or failed review can still be completed under the publication and
+retry rules below.
+
+Supply each only [the auditor prompt](references/auditor-prompt.md) unchanged,
+repository location, PR URL, audit mode, both SHAs, reviewer identity and peer
+contact or parent relay instructions. Record the mode and both SHAs in chat
+after each completed audit, whether or not its GitHub review was published, for
+the next request.
 
 ## Coordinate and decide
 
