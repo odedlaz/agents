@@ -10,8 +10,8 @@ claude plugin marketplace add odedlaz/agents
 claude plugin install agents@agents
 ```
 
-Start a new session, then invoke `/agents:external-audit` or
-`/agents:self-improvement`.
+Start a new session, then invoke `/agents:external-audit` or `/agents:xaudit`.
+Both run the same external audit. `/agents:self-improvement` is also available.
 
 ## Install in Codex
 
@@ -20,8 +20,8 @@ codex plugin marketplace add odedlaz/agents
 codex plugin add agents@agents
 ```
 
-Start a new session and invoke `$external-audit`, or select the skill from the
-plugin's skill picker.
+Start a new session and invoke `$external-audit` or `$xaudit`, or select the skill
+from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
@@ -33,6 +33,11 @@ plugin's skill picker.
   alone does not add a delegation tool or access to either model.
 - `self-improvement` Research and propose improvements to the user's local
   Claude Code instructions. This skill remains specific to Claude Code.
+
+For direct skill installs, the audit commands are `/external-audit` and
+`/xaudit` in Claude Code, or `$external-audit` and `$xaudit` in Codex. The
+`xaudit` skill is a small alias that loads `external-audit`; it has no separate
+review instructions.
 
 ## Approval credentials
 
