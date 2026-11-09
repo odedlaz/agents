@@ -50,17 +50,21 @@ underlying defect even when their wording, slugs or nearby line anchors differ;
 keep genuinely distinct defects separate, including those on the same line.
 Assign one stable slug and one inline comment per defect.
 
-Both auditors must explicitly confirm the same final list, including evidence,
-severity, locations and required corrections, for the same reviewed head before
-calling `request-changes`. Agreement on the verdict alone is insufficient.
-Record both confirmations in chat. Do not force agreement or silently discard
-supported objections. If a disagreement remains, publish neither a change
-request nor an approval; report the disputed findings and evidence in chat.
+Both auditors must explicitly confirm each finding that will be published,
+including evidence, severity, location and required correction, for the same
+reviewed head. Record those confirmations in chat. Agreement on the verdict
+alone is insufficient; do not force agreement or silently discard objections.
 
-If both agree that required work remains, the combined verdict is
-`REQUEST CHANGES`. Missing evidence, failed audits, ambiguous verdicts or
-publication failures cannot count as acceptance. Report failures and unpublished
-findings in chat; clarify an unsupported verdict rather than converting it.
+Separate confirmed findings from disputed findings. If at least one required
+finding is confirmed by both auditors, call `request-changes` with the confirmed
+findings once, even if other findings remain disputed. Disagreement over an
+additional finding must not veto publication of the agreed findings. Keep the
+disputed findings and evidence in chat, outside the GitHub payload.
+
+If only disputed findings remain, publish neither a change request nor an
+approval; report the disagreement in chat. Disputed required findings still
+block approval. Missing evidence, failed audits, ambiguous verdicts or
+publication failures cannot count as acceptance.
 
 Both must accept the same current head with no unresolved required findings
 before approval. A delta verdict does not clear prior unresolved findings by
@@ -75,7 +79,8 @@ Only the parent runs the private scripts. Resolve `approve` and
 
 For `REQUEST CHANGES`, write a JSON file containing the reviewed `commit_id`,
 a short neutral `body`, and `comments` with all required inline findings from
-the agreed canonical list. Include each finding once. Each comment needs
+the canonical list confirmed by both auditors. Exclude disputed findings and
+include each confirmed finding once. Each comment needs
 `path`, `line`, `side` (LEFT or RIGHT), and `body` with its slug, severity, evidence, impact and required correction or
 proof. Preserve real newlines; do not invent diff locations. Keep findings
 without valid inline locations in chat; they still require changes. The
@@ -124,5 +129,8 @@ publication failures and unpublished findings in chat; do not change the verdict
 to make publication succeed.
 
 Report both verdicts and the combined verdict in chat, with the reviewed range,
-rationale, confidence, checks, limits and global feedback. After either script
-succeeds, include its returned reviewer, commit, state and review link.
+rationale, confidence, checks, limits and global feedback. When findings are
+confirmed, finish publication before reporting the audit as complete. After either script succeeds, include its returned reviewer,
+commit, state and review link. Distinguish the auditors' recommended verdict
+from the review actually submitted to GitHub. If submission did not occur,
+state that explicitly with the concrete blocker; do not imply it was posted.

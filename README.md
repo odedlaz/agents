@@ -28,9 +28,10 @@ from the plugin's skill picker. Both names run the same external audit.
 
 - `external-audit` Two independent adversarial code reviews using
   `claude-opus-5-5` and `gpt-6.1-sol`, both at high effort in regular mode.
-  Auditors exchange findings and verify each other's evidence. Both must confirm
-  the same deduplicated findings before one PAT-backed `REQUEST_CHANGES` review.
-  Unresolved disagreement stays in chat and prevents publication. If both accept,
+  Auditors exchange findings and verify each other's evidence. Only findings
+  confirmed by both enter the deduplicated PAT-backed `REQUEST_CHANGES` review. Additional
+  disputed findings stay in chat and do not block publication of agreed findings.
+  Disputed required findings still block approval. If both accept,
   the private script submits `APPROVE`. No standalone GitHub comments are posted. This workflow
   requires cross-provider delegation, such as T3 Code; installing the plugin
   alone does not add a delegation tool or access to either model.
