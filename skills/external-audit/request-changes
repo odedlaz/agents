@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set +x +v
+set -euo pipefail
+
+if [[ $# -ne 2 ]]; then
+  echo "Usage: $0 https://github.com/OWNER/REPO/pull/NUMBER REVIEW.json|-" >&2
+  exit 1
+fi
+
+if [[ ! $1 =~ ^https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/pull/([1-9][0-9]*)/?$ ]]; then
+  echo "Expected a GitHub pull request URL." >&2
+  exit 1
+fi
+repo="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+number=${BASH_REMATCH[3]}
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+
+command -v gh >/dev/null 2>&1 || { echo "GitHub CLI (gh) is required." >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "jq is required." >&2; exit 1; }
+
+# Validate once, then submit the same snapshot even if the input file changes.
+if ! payload=$(jq -cse '
+  if length == 1 then .[0] else error("Expected one JSON object") end
+  | select(type == "object")
+  | select(.commit_id | type == "string" and length > 0)
+  | select(.body | type == "string" and test("\\S"))
+  | select((has("event") | not) or .event == "REQUEST_CHANGES")
+  | .comments = (if has("comments") then .comments else [] end)
+  | select(.comments | type == "array")
+  | select(all(.comments[];
+      (.path | type == "string" and length > 0)
+      and (.body | type == "string" and test("\\S"))
+      and (.line | type == "number" and . > 0 and . == floor)
+      and (.side == "LEFT" or .side == "RIGHT")))
+  | {commit_id, body, comments, event: "REQUEST_CHANGES"}
+' "$2"); then
+  echo "Expected a review JSON object with commit_id, body, and optional inline comments (path, line, side, body)." >&2
+  exit 1
+fi
+reviewed_head=$(jq -r '.commit_id' <<< "$payload")
+
+unset API_KEY
+# shellcheck source=/dev/null
+if ! source "$script_dir/.env" >/dev/null 2>&1; then
+  echo "Could not load .env beside the request-changes script." >&2
+  exit 1
+fi
+set +x +v
+if [[ -z ${API_KEY:-} ]]; then
+  echo "API_KEY is missing or empty in .env." >&2
+  exit 1
+fi
+export GH_TOKEN="$API_KEY"
+export GH_HOST=github.com
+unset GH_DEBUG
+
+reviewer=$(gh api --hostname github.com user --jq .login)
+details=$(gh api --hostname github.com "repos/$repo/pulls/$number" \
+  --jq '[.user.login, .state, .head.sha] | @tsv')
+IFS=$'\t' read -r author state head_sha <<< "$details"
+if [[ $state != open || -z $head_sha ]]; then
+  echo "Requesting changes requires an open pull request with a head commit." >&2
+  exit 1
+fi
+if [[ $head_sha != "$reviewed_head" ]]; then
+  echo "The pull request head changed. Audit the new commit before requesting changes." >&2
+  exit 1
+fi
+if [[ $reviewer == "$author" ]]; then
+  echo "The API_KEY account cannot request changes on its own pull request." >&2
+  exit 1
+fi
+
+printf '%s\n' "$payload" | gh api --hostname github.com --method POST \
+  "repos/$repo/pulls/$number/reviews" --input - \
+  --jq '{url: .html_url, reviewer: .user.login, state, commit_id}'

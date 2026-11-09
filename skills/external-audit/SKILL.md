@@ -1,14 +1,15 @@
 ---
 name: external-audit
-description: Run an external audit with two adversarial PR reviewers, Claude Opus 5.5 and Codex Sol 6.1, when the user asks to "external-audit" a PR or invokes /external-audit. Each posts inline fixes; approve through the script only when both accept.
+description: Run an external audit with two adversarial PR reviewers, Claude Opus 5.5 and Codex Sol 6.1, when the user asks to "external-audit" a PR or invokes /external-audit. Publish one PAT-backed GitHub review with inline findings; request changes when work remains, or approve only when both accept.
 ---
 
 # External Audit
 
-An invocation authorizes two adversarial subagent audits, each auditor posting
-its own inline findings, and approval through the private script. Keep verdicts
-and global feedback in chat. Do not implement changes or merge. Resolve the PR
-URL from the request or unambiguous context; ask if the target is ambiguous.
+An invocation authorizes two adversarial subagent audits and one PAT-backed
+GitHub review through the private scripts. Findings belong inside the review,
+not standalone comments. Keep verdict explanations and global feedback in chat.
+Do not implement changes or merge. Resolve the PR URL from the request or
+unambiguous context; ask if the target is ambiguous.
 
 ## Start the auditors
 
@@ -42,10 +43,10 @@ or parent relay instructions. Both review the same range:
 Each auditor first reads the code independently, then may exchange findings,
 questions and counterexamples with its peer. Relay messages if direct contact
 is unavailable, without adding implementation context. Discussion does not
-require consensus; each verifies claims and keeps its own verdict. Each posts
-its own final inline findings under the auditor prompt's rules and returns its
-verdict, evidence, range and comment links. Do not consolidate their publications
-into one parent review.
+require consensus; each verifies claims and keeps its own verdict. Each returns
+its verdict, evidence, reviewed range and inline finding objects to the parent
+without publishing. The parent combines both results into one formal review;
+retain every supported required finding and deduplicate identical findings.
 
 If either returns `REQUEST CHANGES`, that is the combined verdict. Missing
 evidence, failed audits, ambiguous verdicts or publication failures cannot count
@@ -58,24 +59,59 @@ itself. Recheck the head before approval: if changed, cancel superseded audits
 and start a fresh pair from the last reviewed SHA to the new head. An explicit
 full-review request keeps the full PR range.
 
-## Approve and report
+## Publish and report
 
-Only the parent runs the approval script, once after both accept. Pass exactly
-one argument, the PR URL, and pin the reviewed head. Resolve `approve` beside
-this `SKILL.md` and use its absolute path as `APPROVE_SCRIPT_PATH`:
+Only the parent runs the private scripts. Resolve `approve` and
+`request-changes` beside this `SKILL.md` and use their absolute paths.
+
+For `REQUEST CHANGES`, write a JSON file containing the reviewed `commit_id`,
+a short neutral `body`, and `comments` with all required inline findings from
+both auditors. Each comment needs `path`, `line`, `side` (LEFT or RIGHT), and
+`body` with its slug, severity, evidence, impact and required correction or
+proof. Preserve real newlines; do not invent diff locations. Keep findings
+without valid inline locations in chat; they still require changes. The
+`comments` array may be empty in that case.
+
+```json
+{
+  "commit_id": "REVIEWED_HEAD_SHA",
+  "body": "Please address the required findings.",
+  "comments": [
+    {
+      "path": "src/example.ts",
+      "line": 42,
+      "side": "RIGHT",
+      "body": "`finding-slug` Major: evidence, impact, and required correction."
+    }
+  ]
+}
+```
+
+```sh
+'REQUEST_CHANGES_SCRIPT_PATH' 'https://github.com/OWNER/REPO/pull/NUMBER' 'REVIEW_JSON_PATH'
+```
+
+`request-changes` also accepts `-` as the JSON path to read stdin. It pins the
+review to `commit_id`, checks the current head, and submits `REQUEST_CHANGES`
+with all inline comments in one review. It never submits a standalone comment.
+
+Only when both auditors accept the same current head with no unresolved required
+findings, run `approve` once with exactly one argument, the PR URL:
 
 ```sh
 EXTERNAL_AUDIT_REVIEWED_HEAD='REVIEWED_HEAD_SHA' 'APPROVE_SCRIPT_PATH' 'https://github.com/OWNER/REPO/pull/NUMBER'
 ```
 
-The script loads its own credentials. Do not read its adjacent `.env`, load
-`~/.zshrc`, print credentials, or substitute another approval method. Do not post
-an additional approval review or comment. After a failed or uncertain response,
-check existing reviews before retrying and recheck the head to avoid duplicates
-or approval of an unaudited commit.
+Both scripts load `API_KEY` from their adjacent `.env`. Do not read that file,
+load `~/.zshrc`, print credentials, or substitute normal-connection review calls.
+The PAT account must differ from the PR author. Never publish separate inline
+comments, top-level PR comments, or an additional approval summary.
+
+After a failed or uncertain response, check existing reviews before retrying and
+recheck the head to avoid duplicates or reviewing an unaudited commit. Report
+publication failures and unpublished findings in chat; do not change the verdict
+to make publication succeed.
 
 Report both verdicts and the combined verdict in chat, with the reviewed range,
-rationale, confidence, checks, limits and inline comment links. Include global
-feedback and findings without valid inline locations. After script approval,
-include its returned reviewer, commit and review link. Never post a top-level
-GitHub comment, summary or `REQUEST_CHANGES` review on behalf of the auditors.
+rationale, confidence, checks, limits and global feedback. After either script
+succeeds, include its returned reviewer, commit, state and review link.

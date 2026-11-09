@@ -1,2 +1,3 @@
 .gitconfig
 .env
+__pycache__/

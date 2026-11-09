@@ -28,8 +28,9 @@ from the plugin's skill picker. Both names run the same external audit.
 
 - `external-audit` Two independent adversarial code reviews using
   `claude-opus-5-5` and `gpt-6.1-sol`, both at high effort in regular mode.
-  Auditors may exchange ideas and each posts its own required inline findings.
-  Approval runs through the private script only after both accept. This workflow
+  Auditors may exchange ideas. Their required inline findings are combined into
+  one PAT-backed `REQUEST_CHANGES` review. If both accept, the private script
+  submits `APPROVE`. No standalone GitHub comments are posted. This workflow
   requires cross-provider delegation, such as T3 Code; installing the plugin
   alone does not add a delegation tool or access to either model.
 - `self-improvement` Research and propose improvements to the user's local
@@ -40,13 +41,27 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-## Approval credentials
+## Review credentials and scripts
 
-`external-audit/approve` loads `API_KEY` from a `.env` file beside the script.
-Use an account that can approve the target PR; GitHub rejects self-approval.
-Configure this file separately in each installed copy. `.env` files are ignored
-by git and are not included in the marketplace. Inline findings use the normal
-GitHub connection. Reviewers never load the approval credentials.
+`external-audit/approve` and `external-audit/request-changes` load `API_KEY`
+from the same adjacent `.env`. The PAT needs **Pull requests: Read and write**
+on the target repositories and must belong to an account other than the PR
+author. Configure `.env` separately in each installed copy; it is ignored by git
+and not shipped in the marketplace. Reviewers never load the credentials.
+
+Both scripts require GitHub CLI (`gh`); `request-changes` also requires `jq`.
+Run `approve` with the PR URL and `EXTERNAL_AUDIT_REVIEWED_HEAD` set to the
+reviewed SHA. Run `request-changes` with the PR URL and a JSON file path, or `-`
+for stdin. The JSON requires `commit_id`, `body`, and optionally `comments` with
+`path`, `line`, `side`, and `body` for each inline finding. The script sets
+`event` to `REQUEST_CHANGES` and rejects a changed head or self-review.
+
+```sh
+./skills/external-audit/request-changes https://github.com/OWNER/REPO/pull/123 review.json
+```
+
+The [skill instructions](skills/external-audit/SKILL.md) include a JSON example.
+The payload follows GitHub's [create-review API](https://docs.github.com/en/rest/pulls/reviews#create-a-review-for-a-pull-request).
 
 ## Local development
 
@@ -58,6 +73,7 @@ For direct Claude skill links, `./scripts/setup.sh` links every skill into
 files. Avoid installing both direct links and the plugin in the same client.
 
 ```sh
+python3 -m unittest discover -s scripts/__tests__ -v
 claude plugin validate .
 claude plugin validate .claude-plugin/marketplace.json
 codex plugin list --marketplace odedlaz --available --json
