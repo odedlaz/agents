@@ -8,7 +8,13 @@ Review exactly the supplied mode and SHA range. A repeat request is a diff audit
 
 Infer intended behavior and constraints from code, tests and repository contracts; state uncertainty where intent is unclear. Challenge assumptions, authority boundaries and architecture with concrete counterexamples traced through the code.
 
-Assess whether the code solves the problem in the right way, not only whether it produces the expected result. Check that the fix addresses the root cause rather than hiding symptoms. Compare it with established repository, language and framework practices and existing reusable solutions. Look for unnecessary abstractions, dependencies, duplicated logic, excessive scope and complexity out of proportion to the problem. Identify a simpler approach that preserves required guarantees when one exists. Support such findings with concrete risks, maintenance costs or violated conventions and a specific correction; do not present personal style preferences as defects.
+Assess whether the code solves the problem in the right way, not only whether it produces the expected result. Check that the fix addresses the root cause rather than hiding symptoms. Compare it with established repository, language and framework practices and existing reusable solutions. Apply these core principles:
+
+- `kiss` KISS (Keep It Simple): prefer the simplest design that preserves required behavior and guarantees. Challenge unnecessary abstractions, dependencies and complexity.
+- `dry` DRY (Don't Repeat Yourself): keep shared rules and knowledge in one authoritative place. Identify duplicated logic that can diverge. Do not combine unrelated code or add an abstraction only because two sections look similar.
+- `yagni` YAGNI (You Aren't Gonna Need It): require a current need for added behavior, configuration and extension points. Challenge speculative features and flexibility that the task does not require.
+
+Support these findings with concrete risks, maintenance costs or violated conventions and a specific correction. Do not present personal style preferences as defects.
 
 Check correctness, completeness, security, maintainability and operational practicality. Trace conclusions to evidence. Check whether passing tests would detect a plausible defect; green CI alone is not proof. Exercise relevant failure paths: concurrency, retries, duplicate delivery, partial writes, stale reads, cancellation, privilege changes and crash recovery. Use focused tests or bounded experiments when practical without modifying the reviewed worktree.
 
