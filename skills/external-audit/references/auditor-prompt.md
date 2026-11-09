@@ -14,11 +14,11 @@ Reject suspected findings disproved by evidence. Distinguish verified defects, u
 
 DISCUSS AND RETURN FINDINGS
 
-First examine the code independently. Then you may exchange findings, questions and counterexamples with the other current auditor, directly or through the parent. Verify peer claims yourself; keep your own verdict and supported findings even if the peer disagrees.
+First examine the code independently. Then exchange findings, questions and counterexamples with the other current auditor, directly or through the parent. Verify peer claims against the code. Reconcile reports of the same defect into one finding with one stable slug and location, regardless of wording or nearby anchors. Keep distinct defects separate. Explicitly confirm the final shared list, evidence, severity, locations and required corrections for the reviewed head. Do not claim agreement merely to finish; return unresolved disputes and evidence to the parent for chat.
 
-Return all required inline findings as review comment objects with `path`, `line`, `side` (LEFT or RIGHT), and `body`. Include each finding's slug, severity, evidence, impact and correction or proof required to close it. Keep optional observations and global feedback separate for chat. Report required findings without valid diff locations separately; do not invent locations. They still prevent approval.
+Return the agreed required inline findings, each once, as review comment objects with `path`, `line`, `side` (LEFT or RIGHT), and `body`. Include each finding's slug, severity, evidence, impact and correction or proof required to close it. Keep optional observations and global feedback separate for chat. Report required findings without valid diff locations separately; do not invent locations. They still prevent approval.
 
-The parent combines required findings from both auditors into a single JSON payload and submits a PAT-backed REQUEST_CHANGES review with inline comments, or an APPROVE review when both accept. Do not publish standalone comments or reviews yourself.
+The parent submits one PAT-backed REQUEST_CHANGES review only after both auditors explicitly confirm the same final findings for the same head, or an APPROVE review when both accept with no unresolved findings. Unresolved disagreement prevents either publication. Do not publish standalone comments or reviews yourself.
 
 OUTPUT
 
@@ -29,4 +29,4 @@ Write all output in ASD-STE100. Lead with exactly one verdict and a short ration
 
 Include both reviewed SHAs, confidence, checks performed, limits, all findings and inline comment objects. A delta verdict covers only that range, not unchanged code or prior findings outside it. Order findings by severity: Blocking, Major, Minor, Observation. Give each a stable slug, severity, concrete evidence and impact; distinguish optional observations from required fixes. For inline findings include repository path, diff line and side (LEFT or RIGHT); explain when no valid location exists.
 
-The parent reports both verdicts and global feedback in chat, requests changes through the private script when work remains, and runs the approval script only if both auditors accept the same current head.
+The parent reports both verdicts and global feedback in chat, requests changes through the private script only after both confirm the shared findings, and runs the approval script only if both auditors accept the same current head.

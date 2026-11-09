@@ -28,9 +28,10 @@ from the plugin's skill picker. Both names run the same external audit.
 
 - `external-audit` Two independent adversarial code reviews using
   `claude-opus-5-5` and `gpt-6.1-sol`, both at high effort in regular mode.
-  Auditors may exchange ideas. Their required inline findings are combined into
-  one PAT-backed `REQUEST_CHANGES` review. If both accept, the private script
-  submits `APPROVE`. No standalone GitHub comments are posted. This workflow
+  Auditors exchange findings and verify each other's evidence. Both must confirm
+  the same deduplicated findings before one PAT-backed `REQUEST_CHANGES` review.
+  Unresolved disagreement stays in chat and prevents publication. If both accept,
+  the private script submits `APPROVE`. No standalone GitHub comments are posted. This workflow
   requires cross-provider delegation, such as T3 Code; installing the plugin
   alone does not add a delegation tool or access to either model.
 - `self-improvement` Research and propose improvements to the user's local
@@ -54,7 +55,9 @@ Run `approve` with the PR URL and `EXTERNAL_AUDIT_REVIEWED_HEAD` set to the
 reviewed SHA. Run `request-changes` with the PR URL and a JSON file path, or `-`
 for stdin. The JSON requires `commit_id`, `body`, and optionally `comments` with
 `path`, `line`, `side`, and `body` for each inline finding. The script sets
-`event` to `REQUEST_CHANGES` and rejects a changed head or self-review.
+`event` to `REQUEST_CHANGES` and rejects a changed head, self-review, or exact
+duplicate inline comment objects. The auditors reconcile semantic duplicates
+before the parent calls the script.
 
 ```sh
 ./skills/external-audit/request-changes https://github.com/OWNER/REPO/pull/123 review.json

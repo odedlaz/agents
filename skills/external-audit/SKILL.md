@@ -1,6 +1,6 @@
 ---
 name: external-audit
-description: Run an external audit with two adversarial PR reviewers, Claude Opus 5.5 and Codex Sol 6.1, when the user asks to "external-audit" a PR or invokes /external-audit. Publish one PAT-backed GitHub review with inline findings; request changes when work remains, or approve only when both accept.
+description: Run an external audit with two adversarial PR reviewers, Claude Opus 5.5 and Codex Sol 6.1, when the user asks to "external-audit" a PR or invokes /external-audit. Publish one PAT-backed GitHub review with inline findings; request changes only for mutually agreed findings, or approve only when both accept.
 ---
 
 # External Audit
@@ -40,18 +40,27 @@ or parent relay instructions. Both review the same range:
 
 ## Coordinate and decide
 
-Each auditor first reads the code independently, then may exchange findings,
-questions and counterexamples with its peer. Relay messages if direct contact
-is unavailable, without adding implementation context. Discussion does not
-require consensus; each verifies claims and keeps its own verdict. Each returns
-its verdict, evidence, reviewed range and inline finding objects to the parent
-without publishing. The parent combines both results into one formal review;
-retain every supported required finding and deduplicate identical findings.
+Each auditor first reads the code independently, then both exchange findings,
+questions and counterexamples. Relay messages if direct contact is unavailable,
+without adding implementation context. Each verifies the other's claims against
+the code. Neither publishes directly.
 
-If either returns `REQUEST CHANGES`, that is the combined verdict. Missing
-evidence, failed audits, ambiguous verdicts or publication failures cannot count
-as acceptance. Report failures and unpublished findings in chat; clarify an
-unsupported verdict rather than silently converting it.
+Reconcile the findings into one canonical list. Merge reports of the same
+underlying defect even when their wording, slugs or nearby line anchors differ;
+keep genuinely distinct defects separate, including those on the same line.
+Assign one stable slug and one inline comment per defect.
+
+Both auditors must explicitly confirm the same final list, including evidence,
+severity, locations and required corrections, for the same reviewed head before
+calling `request-changes`. Agreement on the verdict alone is insufficient.
+Record both confirmations in chat. Do not force agreement or silently discard
+supported objections. If a disagreement remains, publish neither a change
+request nor an approval; report the disputed findings and evidence in chat.
+
+If both agree that required work remains, the combined verdict is
+`REQUEST CHANGES`. Missing evidence, failed audits, ambiguous verdicts or
+publication failures cannot count as acceptance. Report failures and unpublished
+findings in chat; clarify an unsupported verdict rather than converting it.
 
 Both must accept the same current head with no unresolved required findings
 before approval. A delta verdict does not clear prior unresolved findings by
@@ -66,8 +75,8 @@ Only the parent runs the private scripts. Resolve `approve` and
 
 For `REQUEST CHANGES`, write a JSON file containing the reviewed `commit_id`,
 a short neutral `body`, and `comments` with all required inline findings from
-both auditors. Each comment needs `path`, `line`, `side` (LEFT or RIGHT), and
-`body` with its slug, severity, evidence, impact and required correction or
+the agreed canonical list. Include each finding once. Each comment needs
+`path`, `line`, `side` (LEFT or RIGHT), and `body` with its slug, severity, evidence, impact and required correction or
 proof. Preserve real newlines; do not invent diff locations. Keep findings
 without valid inline locations in chat; they still require changes. The
 `comments` array may be empty in that case.
@@ -93,7 +102,9 @@ without valid inline locations in chat; they still require changes. The
 
 `request-changes` also accepts `-` as the JSON path to read stdin. It pins the
 review to `commit_id`, checks the current head, and submits `REQUEST_CHANGES`
-with all inline comments in one review. It never submits a standalone comment.
+with all inline comments in one review. It rejects exact duplicate comment
+objects as a final guard; semantic deduplication belongs to the reconciliation
+above. It never submits a standalone comment.
 
 Only when both auditors accept the same current head with no unresolved required
 findings, run `approve` once with exactly one argument, the PR URL:

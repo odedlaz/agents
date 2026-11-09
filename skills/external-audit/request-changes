@@ -32,6 +32,9 @@ if ! payload=$(jq -cse '
       and (.body | type == "string" and test("\\S"))
       and (.line | type == "number" and . > 0 and . == floor)
       and (.side == "LEFT" or .side == "RIGHT")))
+  | if (.comments | length) != (.comments | unique | length)
+    then error("Duplicate inline comments; reconcile findings before publication")
+    else . end
   | {commit_id, body, comments, event: "REQUEST_CHANGES"}
 ' "$2"); then
   echo "Expected a review JSON object with commit_id, body, and optional inline comments (path, line, side, body)." >&2
