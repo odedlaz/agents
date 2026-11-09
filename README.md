@@ -1,23 +1,24 @@
 # Agents
 
-Personal skills distributed as an `agents` plugin for Claude Code and Codex.
-Both clients load the same `skills/` directory.
+Personal skills distributed as a `skills` plugin in the `odedlaz` marketplace for Claude Code and Codex.
+Both clients load the same `skills/` directory. The GitHub repository remains
+`odedlaz/agents`.
 
 ## Install in Claude Code
 
 ```sh
 claude plugin marketplace add odedlaz/agents
-claude plugin install agents@agents
+claude plugin install skills@odedlaz
 ```
 
-Start a new session, then invoke `/agents:external-audit` or `/agents:xaudit`.
-Both run the same external audit. `/agents:self-improvement` is also available.
+Start a new session, then invoke `/skills:external-audit` or `/skills:xaudit`.
+Both run the same external audit. `/skills:self-improvement` is also available.
 
 ## Install in Codex
 
 ```sh
 codex plugin marketplace add odedlaz/agents
-codex plugin add agents@agents
+codex plugin add skills@odedlaz
 ```
 
 Start a new session and invoke `$external-audit` or `$xaudit`, or select the skill
@@ -59,7 +60,7 @@ files. Avoid installing both direct links and the plugin in the same client.
 ```sh
 claude plugin validate .
 claude plugin validate .claude-plugin/marketplace.json
-codex plugin list --marketplace agents --available --json
+codex plugin list --marketplace odedlaz --available --json
 ```
 
 Update the plugin version in both manifests when publishing changes.

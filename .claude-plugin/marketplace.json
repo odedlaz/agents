@@ -1,11 +1,11 @@
 {
-  "name": "agents",
+  "name": "odedlaz",
   "owner": {
     "name": "odedlaz"
   },
   "plugins": [
     {
-      "name": "agents",
+      "name": "skills",
       "source": "./",
       "description": "Personal agent workflows, including independent external code audits."
     }

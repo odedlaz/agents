@@ -1,6 +1,6 @@
 {
-  "name": "agents",
-  "version": "1.1.0",
+  "name": "skills",
+  "version": "1.2.0",
   "description": "Personal agent workflows, including independent external code audits.",
   "author": {
     "name": "odedlaz"
@@ -8,7 +8,7 @@
   "repository": "https://github.com/odedlaz/agents",
   "skills": "./skills/",
   "interface": {
-    "displayName": "Agents",
+    "displayName": "Skills",
     "shortDescription": "Personal agent workflows and external audits",
     "developerName": "odedlaz",
     "category": "Productivity"

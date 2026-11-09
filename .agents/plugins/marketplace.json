@@ -1,11 +1,11 @@
 {
-  "name": "agents",
+  "name": "odedlaz",
   "interface": {
-    "displayName": "Agents"
+    "displayName": "odedlaz"
   },
   "plugins": [
     {
-      "name": "agents",
+      "name": "skills",
       "source": {
         "source": "local",
         "path": "./"
