@@ -1,0 +1,9 @@
+{
+  "name": "agents",
+  "version": "1.0.0",
+  "description": "Personal agent workflows, including independent external code audits.",
+  "author": {
+    "name": "odedlaz"
+  },
+  "repository": "https://github.com/odedlaz/agents"
+}

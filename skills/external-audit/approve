@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set +x +v
+set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+  echo "Usage: $0 https://github.com/OWNER/REPO/pull/NUMBER" >&2
+  exit 1
+fi
+
+if [[ ! $1 =~ ^https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/pull/([1-9][0-9]*)/?$ ]]; then
+  echo "Expected a GitHub pull request URL." >&2
+  exit 1
+fi
+repo="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+number=${BASH_REMATCH[3]}
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+
+command -v gh >/dev/null 2>&1 || { echo "GitHub CLI (gh) is required." >&2; exit 1; }
+unset API_KEY
+# Keep credentials and any dotenv output out of terminal logs.
+# shellcheck source=/dev/null
+if ! source "$script_dir/.env" >/dev/null 2>&1; then
+  echo "Could not load .env beside the approve script." >&2
+  exit 1
+fi
+set +x +v
+if [[ -z ${API_KEY:-} ]]; then
+  echo "API_KEY is missing or empty in .env." >&2
+  exit 1
+fi
+export GH_TOKEN="$API_KEY"
+export GH_HOST=github.com
+unset GH_DEBUG
+
+reviewer=$(gh api --hostname github.com user --jq .login)
+details=$(gh api --hostname github.com "repos/$repo/pulls/$number" \
+  --jq '[.user.login, .state, .head.sha] | @tsv')
+IFS=$'\t' read -r author state head_sha <<< "$details"
+if [[ $state != open || -z $head_sha ]]; then
+  echo "Approval requires an open pull request with a head commit." >&2
+  exit 1
+fi
+if [[ -n ${EXTERNAL_AUDIT_REVIEWED_HEAD:-} && $head_sha != "$EXTERNAL_AUDIT_REVIEWED_HEAD" ]]; then
+  echo "The pull request head changed. Audit the new commit before approval." >&2
+  exit 1
+fi
+if [[ $reviewer == "$author" ]]; then
+  echo "The API_KEY account cannot approve its own pull request." >&2
+  exit 1
+fi
+
+gh api --hostname github.com --method POST "repos/$repo/pulls/$number/reviews" \
+  -f event=APPROVE -f commit_id="$head_sha" \
+  --jq '{url: .html_url, reviewer: .user.login, state, commit_id}'

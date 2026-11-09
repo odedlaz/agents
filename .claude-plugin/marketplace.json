@@ -1,0 +1,14 @@
+{
+  "name": "agents",
+  "owner": {
+    "name": "odedlaz"
+  },
+  "plugins": [
+    {
+      "name": "agents",
+      "source": "./",
+      "description": "Personal agent workflows, including independent external code audits."
+    }
+  ],
+  "description": "Personal agent workflows for Claude Code and Codex."
+}
