@@ -26,15 +26,14 @@ from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
-- `external-audit` Two independent adversarial code reviews using
-  `claude-opus-5-5` and `gpt-6.1-sol`, both at high effort in regular mode.
-  Auditors exchange findings and verify each other's evidence. Only findings
-  confirmed by both enter the deduplicated PAT-backed `REQUEST_CHANGES` review. Additional
-  disputed findings stay in chat and do not block publication of agreed findings.
-  Disputed required findings still block approval. If both accept,
-  the private script submits `APPROVE`. No standalone GitHub comments are posted. This workflow
-  requires cross-provider delegation, such as T3 Code; installing the plugin
-  alone does not add a delegation tool or access to either model.
+- `external-audit` Two independent reviewer roles run in stages: `fast` first,
+  then `slow` only after `fast` accepts the current head. Either role can request
+  corrections through a PAT-backed review with deduplicated inline findings.
+  After fixes, the sequence starts with `fast` again. Approval requires both
+  roles to accept the same commit. Reviewer models and settings are configured
+  only in [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
+  This workflow requires a runtime that can delegate to both configured providers,
+  such as T3 Code; plugin installation alone does not add delegation or model access.
 - `self-improvement` Research and propose improvements to the user's local
   Claude Code instructions. This skill remains specific to Claude Code.
 
@@ -43,11 +42,12 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-Repeat audit requests review only the diff from the last reviewed head to the
-current head. This also applies when the previous audit did not publish a GitHub
-review. Ask explicitly for a full audit to review the entire PR again. When the
-head is unchanged, the skill reports no new code changes and retains unresolved
-findings without posting another review.
+Each role's first review covers the full PR. Later requests use the diff from
+that role's own last reviewed head to current head, including reviews that did
+not publish. Thus `slow` checks all changes accumulated while `fast` reviewed
+fixes. Ask explicitly for a full audit to review the entire PR again. Unchanged
+heads reuse existing results without duplicate reviews; a pending second stage
+can still run. Required findings remain open until their corrections are verified.
 
 ## Review credentials and scripts
 
@@ -63,8 +63,8 @@ reviewed SHA. Run `request-changes` with the PR URL and a JSON file path, or `-`
 for stdin. The JSON requires `commit_id`, `body`, and optionally `comments` with
 `path`, `line`, `side`, and `body` for each inline finding. The script sets
 `event` to `REQUEST_CHANGES` and rejects a changed head, self-review, or exact
-duplicate inline comment objects. The auditors reconcile semantic duplicates
-before the parent calls the script.
+duplicate inline comment objects. The parent removes semantic duplicates
+before calling the script.
 
 ```sh
 ./skills/external-audit/request-changes https://github.com/OWNER/REPO/pull/123 review.json
