@@ -1,6 +1,6 @@
 ---
 name: external-audit
-description: Run parallel adversarial PR reviews when the user asks to external-audit a PR or invokes /external-audit. Use independent verdicts, diff re-reviews and compact results. Publish PAT-backed inline change requests, or approve when both accept the same head.
+description: Run parallel adversarial PR reviews when the user asks to external-audit a PR or invokes /external-audit. Start with full reviews, use diff reviews after fixes, and require fresh final full reviews from both roles before PAT-backed approval. Publish deduplicated inline change requests when needed.
 ---
 
 # External Audit
@@ -22,15 +22,16 @@ In T3 Code, use `orchestrator_capabilities` before the first `delegate_task`, pa
 
 ## Track each reviewer separately
 
-Keep a per-PR record for each role: last completed review SHA, last accepted SHA, unresolved findings, and publication results. Recover this record from prior chat audit records and submitted reviews before starting. Match older role labels by their recorded provider or model so a rename does not reset history. Record each result even when publication failed. A failed review advances that role's completed-review SHA, but does not clear its findings or count as acceptance.
+Keep a per-PR record for each role: last completed review SHA, last accepted SHA, review mode and range, unresolved findings, and publication results. Track a final-full cycle ID and its results separately from initial or diff acceptance. Recover this record from prior chat audit records and submitted reviews before starting. Match older role labels by their recorded provider or model so a rename does not reset history. Record each result even when publication failed. A completed review that requests changes advances that role's completed-review SHA, but does not clear its findings or count as acceptance. An interrupted or incomplete run does not advance it.
 
-A repeat request uses a diff audit even if the user says only "audit this PR" or invokes `/xaudit` or `/external-audit` again:
+Outside the mandatory final-full stage below, a repeat request uses a diff audit even if the user says only "audit this PR" or invokes `/xaudit` or `/external-audit` again:
 
-- `first-range` Each role's first review uses the real PR base to current head. For a stacked PR, use that layer's base. A role with no prior review must cover the full PR even if the other role has already reviewed it.
-- `repeat-range` Later reviews use that role's own last completed review SHA to current head. Never use the other role's cursor or reset to the PR base.
-- `full-range` An explicit full-audit request uses the real PR base for both roles in parallel. It overrides the repeat-range default.
+- `first-range` Each role's first review uses mode `initial-full` and the real PR base to current head. For a stacked PR, use that layer's base. A role with no prior review must cover the full PR even if the other role has already reviewed it.
+- `repeat-range` Correction reviews use mode `diff` and that role's own last completed review SHA to current head. Never use the other role's cursor or reset to the PR base.
+- `full-range` An explicit full-audit request uses mode `full` and the real PR base for both roles in parallel. It overrides the repeat-range default.
+- `final-range` The final approval stage always uses the real PR base to current head for both roles, with mode `final-full`. For a stacked PR, use that layer's base. It is a new review of the whole PR, including unchanged code and interactions between corrections.
 
-If a repeat review has no recoverable previous SHA for that role, ask for it. Fetch an unavailable commit; do not replace it with a merge base or start an unrequested full audit. Compare the supplied commits directly. If that role already reviewed the unchanged head, reuse its recorded result instead of starting another agent. A specific finding re-check can use that role's prior range and closure checklist at the same head; an empty diff is not proof of correction. An unpublished or failed review can still be completed under the publication rules below.
+If a repeat review has no recoverable previous SHA for that role, ask for it. Fetch an unavailable commit; do not replace it with a merge base or start an unrequested full audit. Compare the supplied commits directly. Reuse a completed result for an unchanged range and stage. Final-full results also require the same cycle ID; initial or diff acceptance cannot satisfy this stage. A specific finding re-check can use that role's prior range and closure checklist at the same head; an empty diff is not proof of correction. An unpublished or failed review can still be completed under the publication rules below.
 
 Supply only [the auditor prompt](references/auditor-prompt.md) unchanged, repository location, PR URL, role, audit mode and both SHAs. Include a minimal checklist of still-open findings and closure conditions so earlier defects cannot disappear outside a new diff. Do not supply old review prose, conversation history, implementation claims or author-proposed solutions. The reviewer must verify the checklist against code and tests independently.
 
@@ -38,13 +39,14 @@ Supply only [the auditor prompt](references/auditor-prompt.md) unchanged, reposi
 
 ## Run parallel reviews
 
-- `parallel-round` Start fresh `openai` and `anthropic` agents together for the first review and each correction round, using each role's own applicable range and the same target head. A role's acceptance never gates the other role's start. Reuse completed results for an unchanged head and run only missing reviews or explicit re-checks.
-- `correction-round` Collect both results before making authorized corrections. If either role requires changes, publish the combined required findings once. After fixes, run the applicable diff reviews in parallel again. A failed or unavailable peer blocks approval, but does not block publication of the other role's valid findings.
-- `approve-round` Run `approve` only when both roles accept the same current head and no required findings remain open. Recheck the head before publication and approval; a new commit needs the applicable diff reviews from both roles.
+- `parallel-round` Start fresh `openai` and `anthropic` agents together for the initial full review and each correction round, using each role's own applicable range and the same target head. A role's acceptance never gates the other role's start. Reuse completed results only for the same range and stage; run missing reviews or explicit re-checks as needed.
+- `correction-round` Collect both results before making authorized corrections. If either role requires changes at any stage, publish the combined required findings once. After fixes, run diff reviews in parallel until both roles accept the same head with no open required findings. A failed or unavailable peer blocks approval, but does not block publication of the other role's valid findings.
+- `final-full` Once both roles accept the initial, requested full or diff review, start a new final-full cycle with two fresh agents in parallel over the entire PR. Resume an incomplete cycle by retrying only missing roles. This separate stage is mandatory even when both initial full reviews pass immediately at the unchanged head. If either final-full review requires changes, publish the findings, return to fix-and-diff rounds, and require a new final-full cycle after both diff reviews accept.
+- `approve-round` Run `approve` only after both final-full reviews in the same cycle accept the current PR base and head with no unresolved required findings. Recheck the range before publication and approval. Any new commit or changed final-review base invalidates final-full acceptance; a new head needs diff consensus followed by fresh final-full reviews.
 
-The parent may implement corrections only when the user has authorized that work. If fixes are authorized, continue the fix/review loop until both roles accept. Otherwise, report the findings after publication and resume parallel reviews when a later request supplies fixes. Do not make edits or merges merely to finish an audit.
+The parent may implement corrections only when the user has authorized that work. If fixes are authorized, continue the fix/review loop until both final-full reviews accept. Otherwise, report the findings after publication and resume parallel diff reviews when a later request supplies fixes. Do not make edits or merges merely to finish an audit.
 
-- `independent-verdicts` Each role returns its own verdict without waiting for peer agreement or starting routine peer debate. Either role can require a correction; consensus means both accept the final commit. The parent combines duplicate findings for publication.
+- `independent-verdicts` Each role returns its own verdict without waiting for peer agreement or starting routine peer debate. Either role can require a correction; approval consensus means both final-full reviews accept the final commit. The parent combines duplicate findings for publication.
 
 Keep prior findings open until their corrections are explicitly verified, including findings outside the current diff. Missing evidence, failed reviews, ambiguous verdicts and publication failures cannot count as acceptance. If the parent disputes a finding, keep it open and obtain a fresh re-check instead of discarding it or forcing agreement.
 
@@ -77,7 +79,7 @@ Write a JSON file with the reviewed `commit_id`, a short neutral `body`, and `co
 
 `request-changes` accepts `-` as the JSON path for stdin. It pins the review to `commit_id`, checks the current head, submits `REQUEST_CHANGES` with all inline comments in one review, and rejects exact duplicate comment objects. The parent removes semantic duplicates before calling it.
 
-After both roles accept the same current head with no unresolved required findings, run the approval script once with exactly one argument, the PR URL:
+After both final-full reviews in the same cycle accept the current PR base and head with no unresolved required findings, run the approval script once with exactly one argument, the PR URL. Initial or diff acceptance alone never authorizes this call:
 
 ```sh
 EXTERNAL_AUDIT_REVIEWED_HEAD='REVIEWED_HEAD_SHA' 'APPROVE_SCRIPT_PATH' 'https://github.com/OWNER/REPO/pull/NUMBER'
@@ -87,6 +89,6 @@ Both scripts load `API_KEY` from their adjacent `.env`. Do not read that file, l
 
 After a failed or uncertain response, check existing reviews before retrying and recheck the head to avoid duplicates or reviewing an unaudited commit. Report publication failures and unpublished findings in chat; do not change the verdict to make publication succeed.
 
-- `compact-results` After each review, give one compact chat result with the role, mode, both SHAs, verdict, short rationale, confidence, checks, limits and open-finding status. Put each finding's evidence, impact and correction in its review comment once; do not repeat full findings or investigation narratives in the summary. Keep enough evidence to assess the verdict.
+- `compact-results` After each review, give one compact chat result with the role, mode, final-full cycle ID when applicable, both SHAs, verdict, short rationale, confidence, checks, limits and open-finding status. Put each finding's evidence, impact and correction in its review comment once; do not repeat full findings or investigation narratives in the summary. Keep enough evidence to assess the verdict.
 
-Distinguish a recommended verdict from a submitted GitHub review. Complete required publication before reporting that round as complete; include the script's reviewer, commit, state and review link. If submission did not occur, state the concrete blocker. After final approval, report both roles' accepted SHA and the approval link. If that approval was already published for the current head, report the existing link instead of calling the script again.
+Distinguish a recommended verdict from a submitted GitHub review. Complete required publication before reporting that round as complete; include the script's reviewer, commit, state and review link. If submission did not occur, state the concrete blocker. After final approval, report both roles' final-full range and the approval link. If that approval was already published for the current head, report the existing link instead of calling the script again.

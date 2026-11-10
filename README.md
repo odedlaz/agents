@@ -29,8 +29,9 @@ from the plugin's skill picker. Both names run the same external audit.
 - `external-audit` Two independent reviewer roles, `openai` and `anthropic`, run in parallel
   on the first review and after fixes. Either role can require corrections through
   one PAT-backed review with deduplicated inline findings. Approval requires both
-  roles to accept the same commit. Reviewer models and settings are configured
-  only in [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
+  roles to pass a separate final full review of the same commit. Reviewer models
+  and settings are configured only in
+  [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
   This workflow requires a runtime that can delegate to both configured providers,
   such as T3 Code; plugin installation alone does not add delegation or model access.
 - `self-improvement` Research and propose improvements to the user's local
@@ -41,11 +42,16 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-Each role's first review covers the full PR. Later requests use the diff from
+Each role's first review covers the full PR. Correction reviews use the diff from
 that role's own last reviewed head to current head, including reviews that did
-not publish. Ask explicitly for a full audit to review the entire PR again. Unchanged
-heads reuse existing results without duplicate reviews; a missing reviewer can
-still run. Required findings remain open until their corrections are verified.
+not publish. Once both accept, two fresh reviewers must review the entire PR again
+before approval. This final full stage is required even if the initial full reviews
+passed immediately. If either final full review fails, fix the findings, run diff
+reviews until both accept, then repeat the final full stage.
+
+An explicit full-audit request also uses the entire PR range. Unchanged ranges
+reuse results only within the same stage; initial or diff results never replace
+final full results. Required findings remain open until their corrections are verified.
 
 Reviewers return independent verdicts without routine peer debate and keep results
 compact. They use bounded code reads, expand inspection when evidence requires it,
