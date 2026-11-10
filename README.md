@@ -26,16 +26,14 @@ from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
-- `external-audit` One shallow reviewer handles initial screening and correction diffs.
-  Two independent deep reviewer roles, `openai` and `anthropic`, run final full reviews
-  sequentially: `openai` first, then `anthropic` only after complete OpenAI acceptance.
-  Either role can require corrections through
-  one PAT-backed review with deduplicated inline findings. Approval requires both
-  roles to pass a separate final full review of the same commit. Reviewer models
-  and settings are configured only in
+- `external-audit` One reviewer handles screening and correction diffs. After it
+  accepts, a fresh reviewer checks the entire PR before approval. Both stages use
+  the configured Anthropic profiles. Required findings are published through one
+  PAT-backed review with deduplicated inline findings. Models and settings live in
   [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
-  This workflow requires a runtime that can delegate to both configured providers,
-  such as T3 Code; plugin installation alone does not add delegation or model access.
+  The OpenAI table entries are retained for future use and do not run. The runtime
+  must support the active provider and settings; installing the plugin alone does
+  not add delegation or model access.
 - `self-improvement` Research and propose improvements to the user's local
   Claude Code instructions. This skill remains specific to Claude Code.
 
@@ -44,43 +42,35 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-The `openai` role uses its shallow profile alone for initial screening and correction
-diffs. Both roles use their deep profiles for final full reviews after shallow acceptance.
-Model IDs and effort settings live only in the table
-linked above. Profile switches preserve each provider role's review history.
+The active screening and final profiles use the same model and effort. Profile
+names identify stages. Each review starts fresh without inherited conversation or
+prior conclusions. Model IDs and settings live only in the table linked above.
 
-Initial screening covers the full PR. Correction diffs use the `openai` role's own
-last completed review head, including completed reviews that did not publish.
-Once screening accepts, a fresh `openai` deep reviewer checks the entire PR.
-Only after it completes and accepts does a fresh `anthropic` deep reviewer check
-the same entire PR. This stage is required even when initial screening
-passes immediately. Each reviewer finishes its assigned scope and collects all
-required findings.
-A completed rejection publishes deduplicated findings, then returns to fixes and
-single-reviewer diffs. After screening accepts again, start a new final full cycle.
-Partial or cancelled reviews do not advance cursors or count as approval. Both
-final reviewers must complete and accept the current PR base and head before the
-approval script runs.
+Initial screening covers the entire PR. Correction diffs use the last completed
+screening/correction SHA, including one from the previous provider when the
+workflow changes. Preserve open findings and coverage records when changing profiles.
+After screening accepts the current base and head, a fresh final reviewer checks
+the entire PR. Its acceptance is required even when initial screening passes
+immediately. Every reviewer finishes the assigned scope and collects all required
+findings before a normal verdict. A completed rejection publishes findings, then
+returns to authorized fixes and correction diffs. After screening accepts again,
+start a fresh final-full cycle. Partial reviews never advance cursors or approve.
 
-The invocation authorizes the entire review loop without further permission questions.
-Incomplete screening or correction diffs keep retrying with the shallow profile;
-no retry count permits deep escalation. After a verified upstream merge or rebase
-expands the correction range, use the actual current PR base-to-head range with
-the shallow profile. Keep its open-finding checklist and retry that corrected range.
-A concrete runtime blocker is reported, without bypassing shallow acceptance.
-An explicit user pause still applies.
+The invocation authorizes both review stages, retries, range recovery and review
+publication without further permission questions. Incomplete screening keeps
+retrying the screening profile; no retry count bypasses acceptance. After a verified
+upstream merge or rebase expands the correction range, review the actual current
+PR base-to-head range at the screening stage and retain open findings. Report a
+concrete runtime blocker without bypassing the gate. Explicit user pauses apply.
 
-An explicit full-audit request resets the shallow screening range to the entire PR;
-it does not bypass the shallow gate. Both deep profiles start only after complete
-shallow acceptance for the current PR base and head. Unchanged ranges reuse results
-only within the same stage; shallow results never replace final full results.
-Required findings remain open until their corrections are verified. A repeat request
-reuses a verified published approval only when the base, head, configured settings
-and complete shallow and sequential dual-final records still match. An explicit full-audit
-request reruns both stages.
+An explicit full audit reruns screening over the entire PR, then the fresh final
+review after acceptance. Unchanged ranges reuse results only within their stage;
+screening never replaces final-full review. Reuse an existing published approval
+only when current base/head, active settings and complete screening and final
+records match, with no open required findings. Required findings stay open until
+verified corrections close them.
 
-Reviewers return independent verdicts without routine peer debate and keep results
-compact. They batch related searches and focused reads, reuse retrieved evidence,
+Reviewers return independent verdicts and keep results compact. They batch related searches and focused reads, reuse retrieved evidence,
 and expand inspection when needed. Stable prompt prefixes, tool definitions and
 tool order support caching where the runtime permits. If configurable, cache
 lifetime follows expected reuse intervals and recorded usage; the skill does not
