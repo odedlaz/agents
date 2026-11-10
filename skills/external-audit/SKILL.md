@@ -13,7 +13,7 @@ Change reviewer models and settings only in this table. Use the role and profile
 
 | Profile | Role | Provider | Model | Reasoning effort | Mode |
 | --- | --- | --- | --- | --- | --- |
-| `openai-deep` | `openai` | Codex | `gpt-6.1-sol` | high | regular |
+| `openai-deep` | `openai` | Codex | `gpt-6.1-sol` | max | regular |
 | `anthropic-deep` | `anthropic` | Anthropic | `claude-opus-5-5` | high | regular |
 | `openai-shallow` | `openai` | Codex | `gpt-6.1-sol` | low | regular |
 | `anthropic-shallow` | `anthropic` | Anthropic | `claude-opus-5-5` | low | regular |
