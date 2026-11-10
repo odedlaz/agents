@@ -26,8 +26,9 @@ from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
-- `external-audit` Two independent reviewer roles, `openai` and `anthropic`, run in parallel
-  on the first review and after fixes. Either role can require corrections through
+- `external-audit` One shallow reviewer handles initial screening and correction diffs.
+  Two independent deep reviewer roles, `openai` and `anthropic`, run final full reviews
+  in parallel. Either role can require corrections through
   one PAT-backed review with deduplicated inline findings. Approval requires both
   roles to pass a separate final full review of the same commit. Reviewer models
   and settings are configured only in
@@ -42,17 +43,21 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-Each role uses its shallow profile for the initial full review and correction
-diffs, and its deep profile for final full reviews or an explicit full-audit request.
+The `openai` role uses its shallow profile alone for initial screening and correction
+diffs. Both roles use their deep profiles for final full reviews or an explicit full-audit request.
 Model IDs and effort settings live only in the table
 linked above. Profile switches preserve each provider role's review history.
 
-Each role's first review covers the full PR. Correction reviews use the diff from
-that role's own last reviewed head to current head, including reviews that did
-not publish. Once both accept, two fresh reviewers must review the entire PR again
-before approval. This final full stage is required even if the initial full reviews
-passed immediately. If either final full review fails, fix the findings, run diff
-reviews until both accept, then repeat the final full stage.
+Initial screening covers the full PR. Correction diffs use the `openai` role's own
+last completed review head, including completed reviews that did not publish.
+Once screening accepts, two fresh deep reviewers automatically review the entire
+PR in parallel before approval. This stage is required even when initial screening
+passes immediately. A confirmed required final finding rejects the cycle early:
+stop the unfinished peer, publish deduplicated findings, then return to fixes and
+single-reviewer diffs. After screening accepts again, start a new final full cycle.
+Partial or cancelled reviews do not advance cursors or count as approval. Both
+final reviewers must complete and accept the current PR base and head before the
+approval script runs.
 
 An explicit full-audit request also uses the entire PR range. Unchanged ranges
 reuse results only within the same stage; initial or diff results never replace
