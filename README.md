@@ -26,14 +26,14 @@ from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
-- `external-audit` One reviewer handles screening and correction diffs. After it
-  accepts, a fresh reviewer checks the entire PR before approval. Screening uses
-  the OpenAI profile and the final review uses the Anthropic profile. Required findings are published through one
+- `external-audit` Two independent reviewers audit outstanding diffs sequentially.
+  OpenAI runs first; Anthropic runs only after complete OpenAI acceptance. There
+  is no final/full-PR review stage. Required findings are published through one
   PAT-backed review with deduplicated inline findings. Models and settings live in
   [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
-  The unused table entries are retained for future use and do not run. The runtime
-  must support the active provider and settings; installing the plugin alone does
-  not add delegation or model access.
+  Deep-profile table entries are inactive and retained for future use. The runtime
+  must support both active providers and settings; installing the plugin alone
+  does not add delegation or model access.
 - `self-improvement` Research and propose improvements to the user's local
   Claude Code instructions. This skill remains specific to Claude Code.
 
@@ -42,34 +42,33 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-The OpenAI screening profile reviews initial and correction ranges; the Anthropic
-final profile reviews the entire PR after screening acceptance. Profile names
-identify stages. Each review starts fresh without inherited conversation or prior
-conclusions. Model IDs and settings live only in the table linked above.
+Each review starts fresh without inherited conversation or the other reviewer's
+conclusions. The first review for each role covers the PR base-to-head diff.
+Later reviews cover that role's own last completed review SHA to the current head.
+When OpenAI rejects, Anthropic is skipped and its cursor stays unchanged. Its next
+review covers all accumulated changes since its own cursor, not just the latest
+OpenAI correction. Cursors and open findings survive profile changes and failed
+publication. Partial reviews never advance cursors or count as approval.
 
-Initial screening covers the entire PR. Correction diffs use the last completed
-screening/correction SHA, including one from the previous provider when the
-workflow changes. Preserve open findings and coverage records when changing profiles.
-After screening accepts the current base and head, a fresh final reviewer checks
-the entire PR. Its acceptance is required even when initial screening passes
-immediately. Every reviewer finishes the assigned scope and collects all required
-findings before a normal verdict. A completed rejection publishes findings, then
-returns to authorized fixes and correction diffs. After screening accepts again,
-start a fresh final-full cycle. Partial reviews never advance cursors or approve.
+Every reviewer finishes the entire assigned diff and verifies all open findings,
+including those outside the diff. After a rejection, publish deduplicated findings,
+apply fixes only when authorized, then repeat OpenAI diffs. Once it accepts, run
+Anthropic on its own outstanding diff. Approval requires both roles' complete
+acceptances through the same current head and no unresolved required findings.
+No extra whole-PR pass follows a clean diff review.
 
-The invocation authorizes both review stages, retries, range recovery and review
-publication without further permission questions. Incomplete screening keeps
-retrying the screening profile; no retry count bypasses acceptance. After a verified
-upstream merge or rebase expands the correction range, review the actual current
-PR base-to-head range at the screening stage and retain open findings. Report a
-concrete runtime blocker without bypassing the gate. Explicit user pauses apply.
+The invocation authorizes the loop, retries, range recovery and formal reviews
+without further permission questions. After a verified upstream merge or rebase
+invalidates a cursor or expands the range with upstream changes, use the actual
+current PR base-to-head diff for affected roles. Keep findings and retry incomplete
+work without escalating to a full audit. Report concrete runtime blockers. Explicit
+user pauses apply. An explicit request to review all PR changes resets the next
+diff range to base-to-head, without creating another approval stage.
 
-An explicit full audit reruns screening over the entire PR, then the fresh final
-review after acceptance. Unchanged ranges reuse results only within their stage;
-screening never replaces final-full review. Reuse an existing published approval
-only when current base/head, active settings and complete screening and final
-records match, with no open required findings. Required findings stay open until
-verified corrections close them.
+Reuse an existing published approval only when current base/head, active settings,
+complete coverage from both roles and open-finding records still match. Explicit
+rescans rerun the requested diffs. Otherwise retry only outstanding work, retaining
+independently valid current-head results.
 
 Reviewers return independent verdicts and keep results compact. They batch related searches and focused reads, reuse retrieved evidence,
 and expand inspection when needed. Stable prompt prefixes, tool definitions and
