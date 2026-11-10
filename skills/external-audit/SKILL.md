@@ -9,12 +9,16 @@ An invocation authorizes adversarial reviews and formal GitHub reviews through t
 
 ## Reviewer configuration
 
-Change reviewer models and settings only in this table. Use the role names everywhere else.
+Change reviewer models and settings only in this table. Use the role and profile names everywhere else.
 
-| Role | Provider | Model | Reasoning effort | Mode |
-| --- | --- | --- | --- | --- |
-| `openai` | Codex | `gpt-6.1-sol` | high | regular |
-| `anthropic` | Anthropic | `claude-opus-5-5` | high | regular |
+| Profile | Role | Provider | Model | Reasoning effort | Mode |
+| --- | --- | --- | --- | --- | --- |
+| `openai-deep` | `openai` | Codex | `gpt-6.1-sol` | high | regular |
+| `anthropic-deep` | `anthropic` | Anthropic | `claude-opus-5-5` | high | regular |
+| `openai-shallow` | `openai` | Codex | `gpt-6-luna` | max | regular |
+| `anthropic-shallow` | `anthropic` | Anthropic | `claude-sonnet-5-5` | xhigh | regular |
+
+Use each role's deep profile for `initial-full`, requested `full`, and `final-full` reviews. Use its shallow profile for `diff` reviews. For a targeted finding re-check, use the profile of the review being re-checked. Shallow profiles retain the same finding and evidence standards.
 
 Resolve the exact provider IDs and supported options from runtime capabilities. Set the configured model, effort and mode explicitly; do not inherit settings that can enable fast mode. If a required configuration is unavailable, report the limitation; do not substitute another model.
 
@@ -22,7 +26,7 @@ In T3 Code, use `orchestrator_capabilities` before the first `delegate_task`, pa
 
 ## Track each reviewer separately
 
-Keep a per-PR record for each role: last completed review SHA, last accepted SHA, review mode and range, unresolved findings, and publication results. Track a final-full cycle ID and its results separately from initial or diff acceptance. Recover this record from prior chat audit records and submitted reviews before starting. Match older role labels by their recorded provider or model so a rename does not reset history. Record each result even when publication failed. A completed review that requests changes advances that role's completed-review SHA, but does not clear its findings or count as acceptance. An interrupted or incomplete run does not advance it.
+Keep a per-PR record for each role: last completed review SHA, last accepted SHA, review profile, mode and range, unresolved findings, and publication results. History belongs to the provider role, not the profile: switching between shallow and deep preserves its cursor and open findings. Track a final-full cycle ID and its results separately from initial or diff acceptance. Recover this record from prior chat audit records and submitted reviews before starting. Match older role labels by their recorded provider or model so a rename does not reset history. Record each result even when publication failed. A completed review that requests changes advances that role's completed-review SHA, but does not clear its findings or count as acceptance. An interrupted or incomplete run does not advance it.
 
 Outside the mandatory final-full stage below, a repeat request uses a diff audit even if the user says only "audit this PR" or invokes `/xaudit` or `/external-audit` again:
 
@@ -33,9 +37,9 @@ Outside the mandatory final-full stage below, a repeat request uses a diff audit
 
 If a repeat review has no recoverable previous SHA for that role, ask for it. Fetch an unavailable commit; do not replace it with a merge base or start an unrequested full audit. Compare the supplied commits directly. Reuse a completed result for an unchanged range and stage. Final-full results also require the same cycle ID; initial or diff acceptance cannot satisfy this stage. A specific finding re-check can use that role's prior range and closure checklist at the same head; an empty diff is not proof of correction. An unpublished or failed review can still be completed under the publication rules below.
 
-Supply only [the auditor prompt](references/auditor-prompt.md) unchanged, repository location, PR URL, role, audit mode and both SHAs. Include a minimal checklist of still-open findings and closure conditions so earlier defects cannot disappear outside a new diff. Do not supply old review prose, conversation history, implementation claims or author-proposed solutions. The reviewer must verify the checklist against code and tests independently.
+Supply only [the auditor prompt](references/auditor-prompt.md) unchanged, repository location, PR URL, role, profile, audit mode and both SHAs. Include a minimal checklist of still-open findings and closure conditions so earlier defects cannot disappear outside a new diff. Do not supply old review prose, conversation history, implementation claims or author-proposed solutions. The reviewer must verify the checklist against code and tests independently.
 
-- `stable-prefix` Put the unchanged auditor prompt first in every delegation, then append the role, repository, PR, mode, SHAs and finding checklist in a consistent order. Keep tool definitions and configured model settings stable where the runtime permits. This can support prefix-cache reuse without inherited conversation. Cache controls belong to the runtime; do not invent options, resume old reviewers or add unrelated context to obtain a cache hit.
+- `stable-prefix` Put the unchanged auditor prompt first in every delegation, then append the role, profile, repository, PR, mode, SHAs and finding checklist in a consistent order. Keep tool definitions and configured model settings stable within each profile where the runtime permits. This can support prefix-cache reuse without inherited conversation. Cache controls belong to the runtime; do not invent options, resume old reviewers or add unrelated context to obtain a cache hit.
 
 ## Run parallel reviews
 
@@ -89,6 +93,6 @@ Both scripts load `API_KEY` from their adjacent `.env`. Do not read that file, l
 
 After a failed or uncertain response, check existing reviews before retrying and recheck the head to avoid duplicates or reviewing an unaudited commit. Report publication failures and unpublished findings in chat; do not change the verdict to make publication succeed.
 
-- `compact-results` After each review, give one compact chat result with the role, mode, final-full cycle ID when applicable, both SHAs, verdict, short rationale, confidence, checks, limits and open-finding status. Put each finding's evidence, impact and correction in its review comment once; do not repeat full findings or investigation narratives in the summary. Keep enough evidence to assess the verdict.
+- `compact-results` After each review, give one compact chat result with the role, profile, mode, final-full cycle ID when applicable, both SHAs, verdict, short rationale, confidence, checks, limits and open-finding status. Put each finding's evidence, impact and correction in its review comment once; do not repeat full findings or investigation narratives in the summary. Keep enough evidence to assess the verdict.
 
 Distinguish a recommended verdict from a submitted GitHub review. Complete required publication before reporting that round as complete; include the script's reviewer, commit, state and review link. If submission did not occur, state the concrete blocker. After final approval, report both roles' final-full range and the approval link. If that approval was already published for the current head, report the existing link instead of calling the script again.
