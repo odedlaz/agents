@@ -71,7 +71,10 @@ An explicit full-audit request resets the shallow screening range to the entire 
 it does not bypass the shallow gate. Both deep profiles start only after complete
 shallow acceptance for the current PR base and head. Unchanged ranges reuse results
 only within the same stage; shallow results never replace final full results.
-Required findings remain open until their corrections are verified.
+Required findings remain open until their corrections are verified. A repeat request
+reuses a verified published approval only when the base, head, configured settings
+and complete shallow and dual-final records still match. An explicit full-audit
+request reruns both stages.
 
 Reviewers return independent verdicts without routine peer debate and keep results
 compact. They batch related searches and focused reads, reuse retrieved evidence,
