@@ -27,11 +27,11 @@ from the plugin's skill picker. Both names run the same external audit.
 ## Skills
 
 - `external-audit` One reviewer handles screening and correction diffs. After it
-  accepts, a fresh reviewer checks the entire PR before approval. Both stages use
-  the configured Anthropic profiles. Required findings are published through one
+  accepts, a fresh reviewer checks the entire PR before approval. Screening uses
+  the OpenAI profile and the final review uses the Anthropic profile. Required findings are published through one
   PAT-backed review with deduplicated inline findings. Models and settings live in
   [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
-  The OpenAI table entries are retained for future use and do not run. The runtime
+  The unused table entries are retained for future use and do not run. The runtime
   must support the active provider and settings; installing the plugin alone does
   not add delegation or model access.
 - `self-improvement` Research and propose improvements to the user's local
@@ -42,9 +42,10 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-The active screening and final profiles use the same model and effort. Profile
-names identify stages. Each review starts fresh without inherited conversation or
-prior conclusions. Model IDs and settings live only in the table linked above.
+The OpenAI screening profile reviews initial and correction ranges; the Anthropic
+final profile reviews the entire PR after screening acceptance. Profile names
+identify stages. Each review starts fresh without inherited conversation or prior
+conclusions. Model IDs and settings live only in the table linked above.
 
 Initial screening covers the entire PR. Correction diffs use the last completed
 screening/correction SHA, including one from the previous provider when the
