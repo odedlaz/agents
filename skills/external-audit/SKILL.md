@@ -15,8 +15,8 @@ Change reviewer models and settings only in this table. Use the role and profile
 | --- | --- | --- | --- | --- | --- |
 | `openai-deep` | `openai` | Codex | `gpt-6.1-sol` | high | regular |
 | `anthropic-deep` | `anthropic` | Anthropic | `claude-opus-5-5` | high | regular |
-| `openai-shallow` | `openai` | Codex | `gpt-6-luna` | max | regular |
-| `anthropic-shallow` | `anthropic` | Anthropic | `claude-sonnet-5-5` | xhigh | regular |
+| `openai-shallow` | `openai` | Codex | `gpt-6.1-sol` | low | regular |
+| `anthropic-shallow` | `anthropic` | Anthropic | `claude-opus-5-5` | low | regular |
 
 Use each role's shallow profile for `initial-full` and `diff` reviews. Use its deep profile for requested `full` and mandatory `final-full` reviews. Review range and profile are separate: the shallow initial review still covers the entire PR. For a targeted finding re-check, use the profile of the review being re-checked. Shallow profiles retain the same finding and evidence standards.
 
