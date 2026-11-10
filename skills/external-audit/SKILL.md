@@ -1,6 +1,6 @@
 ---
 name: external-audit
-description: Run staged adversarial PR reviews when the user asks to external-audit a PR or invokes /external-audit. Run fast until it accepts, then slow. Publish PAT-backed change requests with inline findings, or approve when both accept the same head.
+description: Run parallel adversarial PR reviews when the user asks to external-audit a PR or invokes /external-audit. Use independent verdicts, diff re-reviews and compact results. Publish PAT-backed inline change requests, or approve when both accept the same head.
 ---
 
 # External Audit
@@ -26,21 +26,23 @@ Keep a per-PR record for each role: last completed review SHA, last accepted SHA
 
 A repeat request uses a diff audit even if the user says only "audit this PR" or invokes `/xaudit` or `/external-audit` again:
 
-- `first-range` Each role's first review uses the real PR base to current head. For a stacked PR, use that layer's base. The second role's first review must cover all earlier commits, not just the last correction.
+- `first-range` Each role's first review uses the real PR base to current head. For a stacked PR, use that layer's base. A role with no prior review must cover the full PR even if the other role has already reviewed it.
 - `repeat-range` Later reviews use that role's own last completed review SHA to current head. Never use the other role's cursor or reset to the PR base.
-- `full-range` An explicit full-audit request uses the real PR base for both roles, with the same stage order. It overrides the repeat-range default.
+- `full-range` An explicit full-audit request uses the real PR base for both roles in parallel. It overrides the repeat-range default.
 
 If a repeat review has no recoverable previous SHA for that role, ask for it. Fetch an unavailable commit; do not replace it with a merge base or start an unrequested full audit. Compare the supplied commits directly. If that role already reviewed the unchanged head, reuse its recorded result instead of starting another agent. A specific finding re-check can use that role's prior range and closure checklist at the same head; an empty diff is not proof of correction. An unpublished or failed review can still be completed under the publication rules below.
 
 Supply only [the auditor prompt](references/auditor-prompt.md) unchanged, repository location, PR URL, role, audit mode and both SHAs. Include a minimal checklist of still-open findings and closure conditions so earlier defects cannot disappear outside a new diff. Do not supply old review prose, conversation history, implementation claims or author-proposed solutions. The reviewer must verify the checklist against code and tests independently.
 
-## Run the stages
+- `stable-prefix` Put the unchanged auditor prompt first in every delegation, then append the role, repository, PR, mode, SHAs and finding checklist in a consistent order. Keep tool definitions and configured model settings stable where the runtime permits. This can support prefix-cache reuse without inherited conversation. Cache controls belong to the runtime; do not invent options, resume old reviewers or add unrelated context to obtain a cache hit.
 
-- `fast-stage` Start with `fast`, including the very first audit. Do not start `slow` in parallel. If `fast` returns `REQUEST CHANGES`, publish its required findings and return them for correction. When fixes are available, review the new diff with a fresh `fast` agent. Repeat this stage until `fast` accepts the current head.
-- `slow-stage` Start `slow` only after `fast` accepts the current head. Use `slow`'s own first or repeat range. If `slow` returns `REQUEST CHANGES`, publish its required findings and return to the fast stage after fixes. Do not send the fixes directly to `slow` without a current-head fast acceptance.
-- `approve-stage` Run `approve` only when both roles accept the same current head and no required findings remain open. Any new commit returns the workflow to the fast stage. Recheck the head before publication and approval; a changed head needs the applicable diff reviews.
+## Run parallel reviews
 
-The parent may implement corrections only when the user has authorized that work. If fixes are authorized, continue the fix/review loop until both roles accept. Otherwise, report the findings after publication and resume the fast stage when a later request supplies fixes. Do not make edits or merges merely to finish an audit.
+- `parallel-round` Start fresh `fast` and `slow` agents together for the first review and each correction round, using each role's own applicable range and the same target head. A role's acceptance never gates the other role's start. Reuse completed results for an unchanged head and run only missing reviews or explicit re-checks.
+- `correction-round` Collect both results before making authorized corrections. If either role requires changes, publish the combined required findings once. After fixes, run the applicable diff reviews in parallel again. A failed or unavailable peer blocks approval, but does not block publication of the other role's valid findings.
+- `approve-round` Run `approve` only when both roles accept the same current head and no required findings remain open. Recheck the head before publication and approval; a new commit needs the applicable diff reviews from both roles.
+
+The parent may implement corrections only when the user has authorized that work. If fixes are authorized, continue the fix/review loop until both roles accept. Otherwise, report the findings after publication and resume parallel reviews when a later request supplies fixes. Do not make edits or merges merely to finish an audit.
 
 - `independent-verdicts` Each role returns its own verdict without waiting for peer agreement or starting routine peer debate. Either role can require a correction; consensus means both accept the final commit. The parent combines duplicate findings for publication.
 
@@ -50,7 +52,7 @@ Keep prior findings open until their corrections are explicitly verified, includ
 
 Only the parent runs the private scripts. Resolve `approve` and `request-changes` beside this `SKILL.md` and use their absolute paths.
 
-For either role's `REQUEST CHANGES`, submit one formal review containing its required findings. Merge reports of the same underlying defect, even when wording, slugs or nearby anchors differ. Keep distinct defects separate, including those on the same line. Assign one stable slug and one inline comment per defect. Do not repost an unchanged finding already present in an open review; report its existing link and keep it open.
+For a round with `REQUEST CHANGES`, submit one formal review containing the required findings from either role. Merge reports of the same underlying defect, even when wording, slugs or nearby anchors differ. Keep distinct defects separate, including those on the same line. Assign one stable slug and one inline comment per defect. Do not repost an unchanged finding already present in an open review; report its existing link and keep it open.
 
 Write a JSON file with the reviewed `commit_id`, a short neutral `body`, and `comments`. Each comment needs `path`, `line`, `side` (LEFT or RIGHT), and `body` with its slug, severity, evidence, impact and required correction or proof. Preserve real newlines. Keep optional feedback and required findings without valid inline locations in chat; do not invent locations. Such required findings still block approval, and the `comments` array may be empty.
 
@@ -75,7 +77,7 @@ Write a JSON file with the reviewed `commit_id`, a short neutral `body`, and `co
 
 `request-changes` accepts `-` as the JSON path for stdin. It pins the review to `commit_id`, checks the current head, submits `REQUEST_CHANGES` with all inline comments in one review, and rejects exact duplicate comment objects. The parent removes semantic duplicates before calling it.
 
-Do not run the approval script after the first stage alone. After both roles accept the same current head with no unresolved required findings, run it once with exactly one argument, the PR URL:
+After both roles accept the same current head with no unresolved required findings, run the approval script once with exactly one argument, the PR URL:
 
 ```sh
 EXTERNAL_AUDIT_REVIEWED_HEAD='REVIEWED_HEAD_SHA' 'APPROVE_SCRIPT_PATH' 'https://github.com/OWNER/REPO/pull/NUMBER'
@@ -87,4 +89,4 @@ After a failed or uncertain response, check existing reviews before retrying and
 
 - `compact-results` After each review, give one compact chat result with the role, mode, both SHAs, verdict, short rationale, confidence, checks, limits and open-finding status. Put each finding's evidence, impact and correction in its review comment once; do not repeat full findings or investigation narratives in the summary. Keep enough evidence to assess the verdict.
 
-Distinguish a recommended verdict from a submitted GitHub review. Complete required publication before reporting that stage as complete; include the script's reviewer, commit, state and review link. If submission did not occur, state the concrete blocker. After final approval, report both roles' accepted SHA and the approval link. If that approval was already published for the current head, report the existing link instead of calling the script again.
+Distinguish a recommended verdict from a submitted GitHub review. Complete required publication before reporting that round as complete; include the script's reviewer, commit, state and review link. If submission did not occur, state the concrete blocker. After final approval, report both roles' accepted SHA and the approval link. If that approval was already published for the current head, report the existing link instead of calling the script again.

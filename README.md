@@ -26,10 +26,9 @@ from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
-- `external-audit` Two independent reviewer roles run in stages: `fast` first,
-  then `slow` only after `fast` accepts the current head. Either role can request
-  corrections through a PAT-backed review with deduplicated inline findings.
-  After fixes, the sequence starts with `fast` again. Approval requires both
+- `external-audit` Two independent reviewer roles, `fast` and `slow`, run in parallel
+  on the first review and after fixes. Either role can require corrections through
+  one PAT-backed review with deduplicated inline findings. Approval requires both
   roles to accept the same commit. Reviewer models and settings are configured
   only in [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
   This workflow requires a runtime that can delegate to both configured providers,
@@ -44,10 +43,14 @@ review instructions.
 
 Each role's first review covers the full PR. Later requests use the diff from
 that role's own last reviewed head to current head, including reviews that did
-not publish. Thus `slow` checks all changes accumulated while `fast` reviewed
-fixes. Ask explicitly for a full audit to review the entire PR again. Unchanged
-heads reuse existing results without duplicate reviews; a pending second stage
-can still run. Required findings remain open until their corrections are verified.
+not publish. Ask explicitly for a full audit to review the entire PR again. Unchanged
+heads reuse existing results without duplicate reviews; a missing reviewer can
+still run. Required findings remain open until their corrections are verified.
+
+Reviewers return independent verdicts without routine peer debate and keep results
+compact. They use bounded code reads, expand inspection when evidence requires it,
+and receive stable instructions before changing task details to support prompt
+caching where the runtime permits. These controls do not guarantee token savings.
 
 ## Review credentials and scripts
 
