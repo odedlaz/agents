@@ -42,7 +42,9 @@ Supply only [the auditor prompt](references/auditor-prompt.md) unchanged, reposi
 
 The parent may implement corrections only when the user has authorized that work. If fixes are authorized, continue the fix/review loop until both roles accept. Otherwise, report the findings after publication and resume the fast stage when a later request supplies fixes. Do not make edits or merges merely to finish an audit.
 
-Either role can require a correction independently. Agreement on individual findings is not required; consensus means both accept the final commit. Keep prior findings open until their corrections are explicitly verified, including findings outside the current diff. Missing evidence, failed reviews, ambiguous verdicts and publication failures cannot count as acceptance. If the parent disputes a finding, keep it open and obtain a fresh re-check instead of discarding it or forcing agreement.
+- `independent-verdicts` Each role returns its own verdict without waiting for peer agreement or starting routine peer debate. Either role can require a correction; consensus means both accept the final commit. The parent combines duplicate findings for publication.
+
+Keep prior findings open until their corrections are explicitly verified, including findings outside the current diff. Missing evidence, failed reviews, ambiguous verdicts and publication failures cannot count as acceptance. If the parent disputes a finding, keep it open and obtain a fresh re-check instead of discarding it or forcing agreement.
 
 ## Publish and report
 
@@ -83,4 +85,6 @@ Both scripts load `API_KEY` from their adjacent `.env`. Do not read that file, l
 
 After a failed or uncertain response, check existing reviews before retrying and recheck the head to avoid duplicates or reviewing an unaudited commit. Report publication failures and unpublished findings in chat; do not change the verdict to make publication succeed.
 
-After every completed review, report the role, mode, both SHAs, verdict, rationale, confidence, checks, limits and open findings in chat. Distinguish a recommended verdict from a submitted GitHub review. Complete required publication before reporting that stage as complete; include the script's reviewer, commit, state and review link. If submission did not occur, state the concrete blocker. After final approval, report both roles' accepted SHA and the approval link. If that approval was already published for the current head, report the existing link instead of calling the script again.
+- `compact-results` After each review, give one compact chat result with the role, mode, both SHAs, verdict, short rationale, confidence, checks, limits and open-finding status. Put each finding's evidence, impact and correction in its review comment once; do not repeat full findings or investigation narratives in the summary. Keep enough evidence to assess the verdict.
+
+Distinguish a recommended verdict from a submitted GitHub review. Complete required publication before reporting that stage as complete; include the script's reviewer, commit, state and review link. If submission did not occur, state the concrete blocker. After final approval, report both roles' accepted SHA and the approval link. If that approval was already published for the current head, report the existing link instead of calling the script again.
