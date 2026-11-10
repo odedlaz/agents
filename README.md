@@ -44,7 +44,7 @@ For direct skill installs, the audit commands are `/external-audit` and
 review instructions.
 
 The `openai` role uses its shallow profile alone for initial screening and correction
-diffs. Both roles use their deep profiles for final full reviews or an explicit full-audit request.
+diffs. Both roles use their deep profiles for final full reviews after shallow acceptance.
 Model IDs and effort settings live only in the table
 linked above. Profile switches preserve each provider role's review history.
 
@@ -60,15 +60,18 @@ final reviewers must complete and accept the current PR base and head before the
 approval script runs.
 
 The invocation authorizes the entire review loop without further permission questions.
-If initial screening or a correction diff cannot finish after one fresh retry,
-or a verified upstream merge or
-rebase changes the base and expands the correction range with upstream changes,
-automatically run the final deep pair on the current PR range. This is one
-final-full cycle, with no extra full-review cycle. An explicit user pause still applies.
+Incomplete screening or correction diffs keep retrying with the shallow profile;
+no retry count permits deep escalation. After a verified upstream merge or rebase
+expands the correction range, use the actual current PR base-to-head range with
+the shallow profile. Keep its open-finding checklist and retry that corrected range.
+A concrete runtime blocker is reported, without bypassing shallow acceptance.
+An explicit user pause still applies.
 
-An explicit full-audit request also uses the entire PR range. Unchanged ranges
-reuse results only within the same stage; initial or diff results never replace
-final full results. Required findings remain open until their corrections are verified.
+An explicit full-audit request resets the shallow screening range to the entire PR;
+it does not bypass the shallow gate. Both deep profiles start only after complete
+shallow acceptance for the current PR base and head. Unchanged ranges reuse results
+only within the same stage; shallow results never replace final full results.
+Required findings remain open until their corrections are verified.
 
 Reviewers return independent verdicts without routine peer debate and keep results
 compact. They use bounded code reads, expand inspection when evidence requires it,
