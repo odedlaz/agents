@@ -15,7 +15,7 @@ Change reviewer models and settings only in this table. Use the role and profile
 | --- | --- | --- | --- | --- | --- |
 | `openai-deep` | `openai` | Codex | `gpt-6.1-sol` | xhigh | regular |
 | `anthropic-deep` | `anthropic` | Anthropic | `claude-opus-5-5` | high | regular |
-| `openai-shallow` | `openai` | Codex | `gpt-6.1-sol` | low | regular |
+| `openai-shallow` | `openai` | Codex | `gpt-6.1-sol` | medium | regular |
 
 Use `openai-shallow` alone for `initial-full` screening and correction `diff` reviews. Start `openai-deep` for `final-full` only after a complete shallow review accepts the current head and verifies all open required findings. Start `anthropic-deep` only after `openai-deep` completes and accepts the entire current PR in the same final-full cycle. Never overlap these final reviews. Failure, incomplete coverage, repeated retries, and base changes never bypass this gate. Review range and profile are separate: initial screening still covers the entire PR. Use the shallow profile for finding re-checks before this gate; a deep re-check also requires shallow acceptance. All profiles retain the same finding and evidence standards.
 
