@@ -42,8 +42,9 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-Each role uses its deep profile for initial and final full reviews, and its shallow
-profile for correction diffs. Model IDs and effort settings live only in the table
+Each role uses its shallow profile for the initial full review and correction
+diffs, and its deep profile for final full reviews or an explicit full-audit request.
+Model IDs and effort settings live only in the table
 linked above. Profile switches preserve each provider role's review history.
 
 Each role's first review covers the full PR. Correction reviews use the diff from
