@@ -27,14 +27,14 @@ from the plugin's skill picker. Both names run the same external audit.
 ## Skills
 
 - `external-audit` One shallow reviewer handles initial screening and correction diffs.
-  Two independent deep reviewer roles, `openai` and `anthropic`, run final full reviews
-  in parallel. Either role can require corrections through
-  one PAT-backed review with deduplicated inline findings. Approval requires both
-  roles to pass a separate final full review of the same commit. Reviewer models
-  and settings are configured only in
+  After shallow acceptance, one fresh deep reviewer checks the entire PR.
+  Required findings are published through one PAT-backed review with deduplicated
+  inline comments. Approval requires a complete accepting final full review of the
+  current PR base and head. Reviewer models and settings live in
   [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
-  This workflow requires a runtime that can delegate to both configured providers,
-  such as T3 Code; plugin installation alone does not add delegation or model access.
+  Only the profiles selected by the workflow run; other table entries are retained
+  for future use. The runtime must support the configured provider and settings;
+  plugin installation alone does not add delegation or model access.
 - `self-improvement` Research and propose improvements to the user's local
   Claude Code instructions. This skill remains specific to Claude Code.
 
@@ -44,19 +44,18 @@ For direct skill installs, the audit commands are `/external-audit` and
 review instructions.
 
 The `openai` role uses its shallow profile alone for initial screening and correction
-diffs. Both roles use their deep profiles for final full reviews after shallow acceptance.
+diffs. Its deep profile handles final full reviews after shallow acceptance.
 Model IDs and effort settings live only in the table
 linked above. Profile switches preserve each provider role's review history.
 
 Initial screening covers the full PR. Correction diffs use the `openai` role's own
 last completed review head, including completed reviews that did not publish.
-Once screening accepts, two fresh deep reviewers automatically review the entire
-PR in parallel before approval. This stage is required even when initial screening
+Once screening accepts, one fresh deep reviewer automatically reviews the entire
+PR before approval. This stage is required even when initial screening
 passes immediately. A confirmed required final finding rejects the cycle early:
-stop the unfinished peer, publish deduplicated findings, then return to fixes and
-single-reviewer diffs. After screening accepts again, start a new final full cycle.
-Partial or cancelled reviews do not advance cursors or count as approval. Both
-final reviewers must complete and accept the current PR base and head before the
+publish deduplicated findings, then return to fixes and shallow diffs. After screening accepts again, start a new final full cycle.
+Partial or cancelled reviews do not advance cursors or count as approval. The configured
+full reviewer must complete and accept the current PR base and head before the
 approval script runs.
 
 The invocation authorizes the entire review loop without further permission questions.
@@ -68,13 +67,13 @@ A concrete runtime blocker is reported, without bypassing shallow acceptance.
 An explicit user pause still applies.
 
 An explicit full-audit request resets the shallow screening range to the entire PR;
-it does not bypass the shallow gate. Both deep profiles start only after complete
+it does not bypass the shallow gate. The deep profile starts only after complete
 shallow acceptance for the current PR base and head. Unchanged ranges reuse results
 only within the same stage; shallow results never replace final full results.
 Required findings remain open until their corrections are verified.
 
-Reviewers return independent verdicts without routine peer debate and keep results
-compact. They use bounded code reads, expand inspection when evidence requires it,
+Reviewers work without inherited conversation context and keep results compact.
+They use bounded code reads, expand inspection when evidence requires it,
 and receive stable instructions before changing task details to support prompt
 caching where the runtime permits. These controls do not guarantee token savings.
 
