@@ -26,15 +26,15 @@ from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
-- `external-audit` Four fresh adversarial reviews run sequentially over outstanding
-  diffs: OpenAI low, Anthropic low, OpenAI high, then Anthropic high. A rejection
-  skips later profiles. After authorized corrections, restart with OpenAI low.
-  Approval requires all four profiles to accept the current head, including both
-  high-effort reviewers. There is no full-PR stage. Required findings use one
-  PAT-backed review with deduplicated inline findings. Models and settings live in
+- `external-audit` A fresh screening reviewer audits correction diffs. After complete
+  acceptance, a fresh deep reviewer audits the entire PR. A rejection returns to
+  authorized fixes and screening diffs, then another full review after screening
+  accepts. Only full deep acceptance permits PAT-backed approval. Required findings
+  use formal reviews with deduplicated inline findings. Models and settings live in
   [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
-  The runtime must support both providers and configured settings; installing the
-  plugin alone does not add delegation or model access.
+  Only OpenAI profiles are active; Anthropic rows remain for future configuration.
+  The runtime must support the active provider and settings; installing the plugin
+  alone does not add delegation or model access.
 - `self-improvement` Research and propose improvements to the user's local
   Claude Code instructions. This skill remains specific to Claude Code.
 
@@ -44,33 +44,31 @@ For direct skill installs, the audit commands are `/external-audit` and
 review instructions.
 
 Each review starts fresh without inherited conversation or another reviewer's
-conclusions. Each of the four profiles has its own completed-review SHA. Its first
-review covers the PR base-to-head diff; later reviews cover its own cursor to the
-current head. Skipped profiles keep their cursors and later review accumulated
-changes. Low acceptance never advances a high-effort cursor. Matching history is
-recovered by actual settings and coverage, not an old profile name. Open findings
-survive configuration changes and failed publication. Partial reviews never
-advance cursors or count as approval.
+conclusions. Screening first covers the actual PR base to head, then reviews its
+own last completed screening SHA to the current head. Complete screening rejection
+advances that cursor; partial reviews do not. Full reviews never advance the
+screening cursor. Each full review covers the entire actual PR base-to-head range,
+even after a previous full rejection. Match history by actual settings, audit mode
+and coverage, not profile name. Preserve all open findings from older configurations.
 
-Every reviewer finishes its assigned diff and verifies all open findings,
-including those outside the diff. After any complete rejection, publish findings,
-apply fixes only when authorized, and restart the sequence at OpenAI low. Both
-high-effort acceptances are mandatory before approval. All four profiles must
-accept through the same current head under the current PR base. Deep profiles
-review outstanding diffs, without another whole-PR pass.
+Every reviewer finishes its assigned range and verifies all open findings,
+including findings outside the screening diff. After a rejection, publish findings
+and apply fixes only when authorized. Screening must accept again before another
+full review. Approval requires complete acceptance from both active profiles at
+the current base/head, including deep coverage of the entire PR.
 
-The invocation authorizes the loop, retries, range recovery and formal reviews
-without further permission questions. After a verified upstream merge or rebase
-invalidates a cursor or expands the range with upstream changes, use the actual
-current PR base-to-head diff for affected profiles. Keep findings and retry incomplete
-work without escalating to a full audit. Report concrete runtime blockers. Explicit
-user pauses apply. An explicit request to review all PR changes resets the next
-diff range to base-to-head, without creating another approval stage.
+The invocation authorizes the loop, retries, automatic full-review transition,
+range recovery and formal reviews without further permission questions. After a
+verified upstream merge or rebase invalidates the screening cursor or introduces
+upstream changes, screen the actual current PR base-to-head diff. Deep still waits
+for complete screening acceptance. Keep findings and retry incomplete work; report
+concrete runtime blockers. Explicit user pauses apply. An explicit rescan restarts
+screening at the actual PR base before the full review.
 
 Reuse an existing published approval only when current base/head, active settings,
-complete coverage from all four profiles and open-finding records still match. Explicit
-rescans rerun the requested diffs. Otherwise retry only outstanding work, retaining
-independently valid current-head results.
+complete screening and full deep coverage, and open-finding records still match.
+Explicit rescans rerun both stages. Otherwise retry only missing work while its
+prerequisites remain valid.
 
 Reviewers return independent verdicts and keep results compact. They batch related searches and focused reads, reuse retrieved evidence,
 and expand inspection when needed. Stable prompt prefixes, tool definitions and
