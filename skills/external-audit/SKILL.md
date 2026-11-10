@@ -13,16 +13,16 @@ Change reviewer models and settings only in this table. Use the role names every
 
 | Role | Provider | Model | Reasoning effort | Mode |
 | --- | --- | --- | --- | --- |
-| `fast` | Codex | `gpt-6.1-sol` | high | regular |
-| `slow` | Anthropic | `claude-opus-5-5` | high | regular |
+| `openai` | Codex | `gpt-6.1-sol` | high | regular |
+| `anthropic` | Anthropic | `claude-opus-5-5` | high | regular |
 
-`fast` and `slow` are role names, not service tiers. Resolve the exact provider IDs and supported options from runtime capabilities. Set the configured model, effort and mode explicitly; do not inherit settings that can enable fast mode. If a required configuration is unavailable, report the limitation; do not substitute another model.
+Resolve the exact provider IDs and supported options from runtime capabilities. Set the configured model, effort and mode explicitly; do not inherit settings that can enable fast mode. If a required configuration is unavailable, report the limitation; do not substitute another model.
 
 In T3 Code, use `orchestrator_capabilities` before the first `delegate_task`, pass settings in `target.options`, and follow returned continuation instructions. Use supported delegation tools in other runtimes. Start a fresh agent for every review or re-check, without inherited conversation or implementation context. Reviewers never implement fixes or publish to GitHub.
 
 ## Track each reviewer separately
 
-Keep a per-PR record for each role: last completed review SHA, last accepted SHA, unresolved findings, and publication results. Recover this record from prior chat audit records and submitted reviews before starting. Record each result even when publication failed. A failed review advances that role's completed-review SHA, but does not clear its findings or count as acceptance.
+Keep a per-PR record for each role: last completed review SHA, last accepted SHA, unresolved findings, and publication results. Recover this record from prior chat audit records and submitted reviews before starting. Match older role labels by their recorded provider or model so a rename does not reset history. Record each result even when publication failed. A failed review advances that role's completed-review SHA, but does not clear its findings or count as acceptance.
 
 A repeat request uses a diff audit even if the user says only "audit this PR" or invokes `/xaudit` or `/external-audit` again:
 
@@ -38,7 +38,7 @@ Supply only [the auditor prompt](references/auditor-prompt.md) unchanged, reposi
 
 ## Run parallel reviews
 
-- `parallel-round` Start fresh `fast` and `slow` agents together for the first review and each correction round, using each role's own applicable range and the same target head. A role's acceptance never gates the other role's start. Reuse completed results for an unchanged head and run only missing reviews or explicit re-checks.
+- `parallel-round` Start fresh `openai` and `anthropic` agents together for the first review and each correction round, using each role's own applicable range and the same target head. A role's acceptance never gates the other role's start. Reuse completed results for an unchanged head and run only missing reviews or explicit re-checks.
 - `correction-round` Collect both results before making authorized corrections. If either role requires changes, publish the combined required findings once. After fixes, run the applicable diff reviews in parallel again. A failed or unavailable peer blocks approval, but does not block publication of the other role's valid findings.
 - `approve-round` Run `approve` only when both roles accept the same current head and no required findings remain open. Recheck the head before publication and approval; a new commit needs the applicable diff reviews from both roles.
 

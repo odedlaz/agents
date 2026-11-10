@@ -26,7 +26,7 @@ from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
-- `external-audit` Two independent reviewer roles, `fast` and `slow`, run in parallel
+- `external-audit` Two independent reviewer roles, `openai` and `anthropic`, run in parallel
   on the first review and after fixes. Either role can require corrections through
   one PAT-backed review with deduplicated inline findings. Approval requires both
   roles to accept the same commit. Reviewer models and settings are configured
