@@ -59,6 +59,13 @@ Partial or cancelled reviews do not advance cursors or count as approval. Both
 final reviewers must complete and accept the current PR base and head before the
 approval script runs.
 
+The invocation authorizes the entire review loop without further permission questions.
+If initial screening or a correction diff cannot finish after one fresh retry,
+or a verified upstream merge or
+rebase changes the base and expands the correction range with upstream changes,
+automatically run the final deep pair on the current PR range. This is one
+final-full cycle, with no extra full-review cycle. An explicit user pause still applies.
+
 An explicit full-audit request also uses the entire PR range. Unchanged ranges
 reuse results only within the same stage; initial or diff results never replace
 final full results. Required findings remain open until their corrections are verified.
