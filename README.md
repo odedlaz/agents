@@ -28,7 +28,8 @@ from the plugin's skill picker. Both names run the same external audit.
 
 - `external-audit` One shallow reviewer handles initial screening and correction diffs.
   Two independent deep reviewer roles, `openai` and `anthropic`, run final full reviews
-  in parallel. Either role can require corrections through
+  sequentially: `openai` first, then `anthropic` only after complete OpenAI acceptance.
+  Either role can require corrections through
   one PAT-backed review with deduplicated inline findings. Approval requires both
   roles to pass a separate final full review of the same commit. Reviewer models
   and settings are configured only in
@@ -50,10 +51,11 @@ linked above. Profile switches preserve each provider role's review history.
 
 Initial screening covers the full PR. Correction diffs use the `openai` role's own
 last completed review head, including completed reviews that did not publish.
-Once screening accepts, two fresh deep reviewers automatically review the entire
-PR in parallel before approval. This stage is required even when initial screening
+Once screening accepts, a fresh `openai` deep reviewer checks the entire PR.
+Only after it completes and accepts does a fresh `anthropic` deep reviewer check
+the same entire PR. This stage is required even when initial screening
 passes immediately. A confirmed required final finding rejects the cycle early:
-stop the unfinished peer, publish deduplicated findings, then return to fixes and
+publish deduplicated findings, then return to fixes and
 single-reviewer diffs. After screening accepts again, start a new final full cycle.
 Partial or cancelled reviews do not advance cursors or count as approval. Both
 final reviewers must complete and accept the current PR base and head before the
@@ -73,7 +75,7 @@ shallow acceptance for the current PR base and head. Unchanged ranges reuse resu
 only within the same stage; shallow results never replace final full results.
 Required findings remain open until their corrections are verified. A repeat request
 reuses a verified published approval only when the base, head, configured settings
-and complete shallow and dual-final records still match. An explicit full-audit
+and complete shallow and sequential dual-final records still match. An explicit full-audit
 request reruns both stages.
 
 Reviewers return independent verdicts without routine peer debate and keep results

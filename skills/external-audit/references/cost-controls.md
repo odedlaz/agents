@@ -23,7 +23,7 @@ Use supported context editing or compaction when context pressure requires it. P
 
 ## Review-specific controls
 
-[Devin](https://devin.ai/blog/devin-review-2) and [Bugbot](https://cursor.com/blog/bugbot-updates-june-2026) use incremental reviews to avoid repeated work. Keep this skill's SHA-based correction ranges and same-stage result reuse; neither replaces the mandatory final pair. [CodeRabbit](https://www.coderabbit.ai/blog/the-art-and-science-of-context-engineering) verifies proposed findings against repository context. Use the auditor prompt's evidence check within each existing reviewer, without adding another routine model pass. Inspect evident high-risk paths first to support early rejection, while retaining complete coverage for acceptance.
+[Devin](https://devin.ai/blog/devin-review-2) and [Bugbot](https://cursor.com/blog/bugbot-updates-june-2026) use incremental reviews to avoid repeated work. Keep this skill's SHA-based correction ranges and same-stage result reuse; neither replaces the mandatory sequential final pair. [CodeRabbit](https://www.coderabbit.ai/blog/the-art-and-science-of-context-engineering) verifies proposed findings against repository context. Use the auditor prompt's evidence check within each existing reviewer, without adding another routine model pass. Inspect evident high-risk paths first to support early rejection, while retaining complete coverage for acceptance.
 
 ## Measure results
 
