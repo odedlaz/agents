@@ -54,8 +54,9 @@ last completed review head, including completed reviews that did not publish.
 Once screening accepts, a fresh `openai` deep reviewer checks the entire PR.
 Only after it completes and accepts does a fresh `anthropic` deep reviewer check
 the same entire PR. This stage is required even when initial screening
-passes immediately. A confirmed required final finding rejects the cycle early:
-publish deduplicated findings, then return to fixes and
+passes immediately. Each reviewer finishes its assigned scope and collects all
+required findings.
+A completed rejection publishes deduplicated findings, then returns to fixes and
 single-reviewer diffs. After screening accepts again, start a new final full cycle.
 Partial or cancelled reviews do not advance cursors or count as approval. Both
 final reviewers must complete and accept the current PR base and head before the
