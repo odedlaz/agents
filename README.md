@@ -26,15 +26,13 @@ from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
-- `external-audit` A fresh screening reviewer audits correction diffs. After complete
-  acceptance, a fresh deep reviewer audits the entire PR. A rejection returns to
-  authorized fixes and screening diffs, then another full review after screening
-  accepts. Only full deep acceptance permits PAT-backed approval. Required findings
-  use formal reviews with deduplicated inline findings. Models and settings live in
+- `external-audit` Prepare the PR with screening diffs, then run one parallel full-PR
+  pair for the broader review. After that pair, finish with correction diffs only.
+  Required findings use formal reviews with deduplicated inline comments; approval
+  uses the private script. Models and settings live in
   [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
-  Only OpenAI profiles are active; Anthropic rows remain for future configuration.
-  The runtime must support the active provider and settings; installing the plugin
-  alone does not add delegation or model access.
+  The runtime must support the configured providers and settings; installing the
+  plugin alone does not add delegation or model access.
 - `self-improvement` Research and propose improvements to the user's local
   Claude Code instructions. This skill remains specific to Claude Code.
 
@@ -43,32 +41,38 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-Each review starts fresh without inherited conversation or another reviewer's
-conclusions. Screening first covers the actual PR base to head, then reviews its
-own last completed screening SHA to the current head. Complete screening rejection
-advances that cursor; partial reviews do not. Full reviews never advance the
-screening cursor. Each full review covers the entire actual PR base-to-head range,
-even after a previous full rejection. Match history by actual settings, audit mode
-and coverage, not profile name. Preserve all open findings from older configurations.
+Each review starts fresh without inherited conversation or peer conclusions.
+Preparation uses the screening profile: first actual PR base-to-head, then its
+last completed screening SHA to current head. Once it accepts, both deep profiles
+review the entire PR in parallel at the same pinned base/head. Both finish and
+return independent verdicts; a defect does not cancel the peer.
 
-Every reviewer finishes its assigned range and verifies all open findings,
-including findings outside the screening diff. After a rejection, publish findings
-and apply fixes only when authorized. Screening must accept again before another
-full review. Approval requires complete acceptance from both active profiles at
-the current base/head, including deep coverage of the entire PR.
+Record the completed full-pair checkpoint even when findings remain. After that
+checkpoint, use only the OpenAI deep profile for correction diffs, initially from
+its completed full-review head, then from its last completed correction SHA. Verify
+all findings from both providers, including findings outside the latest delta.
+Complete correction acceptance with no open required findings permits approval;
+it does not require another Anthropic review. If the full pair accepts unchanged
+code with no findings, approve directly.
 
-The invocation authorizes the loop, retries, automatic full-review transition,
-range recovery and formal reviews without further permission questions. After a
-verified upstream merge or rebase invalidates the screening cursor or introduces
-upstream changes, screen the actual current PR base-to-head diff. Deep still waits
-for complete screening acceptance. Keep findings and retry incomplete work; report
-concrete runtime blockers. Explicit user pauses apply. An explicit rescan restarts
-screening at the actual PR base before the full review.
+The full pair runs once per PR. Preserve its checkpoint and the current phase
+across sessions, ordinary re-reviews, new commits and rebases. After a verified
+upstream merge or rebase invalidates a cursor, review actual current base-to-head
+in the current diff phase. After the checkpoint, this remains a correction diff,
+not another full cycle. Only an explicit request for another full review resets
+that checkpoint. Fix code only when authorized; otherwise retain the phase and
+resume when fixes arrive.
 
-Reuse an existing published approval only when current base/head, active settings,
-complete screening and full deep coverage, and open-finding records still match.
-Explicit rescans rerun both stages. Otherwise retry only missing work while its
-prerequisites remain valid.
+Incomplete reviews retry fresh over the same assigned range, without advancing
+cursors or completing a phase. A complete full peer need not rerun while its pinned
+range and settings remain valid. Confirmed partial findings may publish without
+making coverage complete. The invocation authorizes reviews, automatic phase
+transitions, retries, range recovery and formal publication without readiness or
+permission questions. Explicit user pauses apply.
+
+Reuse a published approval only when current base/head, configured settings,
+phase coverage and findings still match. A stale approval does not erase the
+completed full-pair checkpoint. Recheck current base/head before publication.
 
 Reviewers return independent verdicts and keep results compact. They batch related searches and focused reads, reuse retrieved evidence,
 and expand inspection when needed. Stable prompt prefixes, tool definitions and
