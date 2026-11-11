@@ -26,8 +26,8 @@ from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
-- `external-audit` Prepare the PR with screening diffs, then run one parallel full-PR
-  pair for the broader review. After that pair, finish with correction diffs only.
+- `external-audit` Prepare the PR with screening diffs, then run one Anthropic full-PR
+  review for the broader review. After that review, finish with correction diffs only.
   Required findings use formal reviews with deduplicated inline comments; approval
   uses the private script. Models and settings live in
   [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
@@ -41,38 +41,39 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-Each review starts fresh without inherited conversation or peer conclusions.
+Each review starts fresh without inherited conversation or earlier verdicts.
 Preparation uses the screening profile: first actual PR base-to-head, then its
-last completed screening SHA to current head. Once it accepts, both deep profiles
-review the entire PR in parallel at the same pinned base/head. Both finish and
-return independent verdicts; a defect does not cancel the peer.
+last completed screening SHA to current head. Once it accepts, only the Anthropic
+deep profile reviews the entire PR at a pinned base/head. There is no OpenAI full
+review. The full reviewer finishes the entire scope and collects all findings.
 
-Record the completed full-pair checkpoint even when findings remain. After that
-checkpoint, use only the OpenAI deep profile for correction diffs, initially from
-its completed full-review head, then from its last completed correction SHA. Verify
-all findings from both providers, including findings outside the latest delta.
-Complete correction acceptance with no open required findings permits approval;
-it does not require another Anthropic review. If the full pair accepts unchanged
-code with no findings, approve directly.
+Record the completed Anthropic checkpoint even when it rejects. After that,
+use only the OpenAI deep profile for correction diffs. The initial correction
+baseline is the full-reviewed head; this does not claim earlier OpenAI coverage.
+Later corrections use the last completed correction SHA to current head. Verify
+all findings, including Anthropic findings outside the delta. Complete correction
+acceptance with no open findings permits approval, without another Anthropic run.
+If full review accepts unchanged code with no findings, approve directly.
 
-The full pair runs once per PR. Preserve its checkpoint and the current phase
-across sessions, ordinary re-reviews, new commits and rebases. After a verified
-upstream merge or rebase invalidates a cursor, review actual current base-to-head
-in the current diff phase. After the checkpoint, this remains a correction diff,
-not another full cycle. Only an explicit request for another full review resets
-that checkpoint. Fix code only when authorized; otherwise retain the phase and
-resume when fixes arrive.
+Full review runs once per PR. Preserve its checkpoint and phase across sessions,
+ordinary re-reviews, new commits and rebases. After a verified upstream merge or
+rebase invalidates a cursor, review actual current base-to-head in the current
+diff phase. After the checkpoint, this stays a correction diff. Only an explicit
+request for another full review starts another cycle. A complete matching
+Anthropic full result from a previous dual-review cycle can supply the checkpoint.
+Fix code only when authorized; otherwise retain the phase and resume when fixes arrive.
 
 Incomplete reviews retry fresh over the same assigned range, without advancing
-cursors or completing a phase. A complete full peer need not rerun while its pinned
-range and settings remain valid. Confirmed partial findings may publish without
-making coverage complete. The invocation authorizes reviews, automatic phase
-transitions, retries, range recovery and formal publication without readiness or
-permission questions. Explicit user pauses apply.
+cursors or completing a phase. If the PR moves during full review, finish/retry
+its pinned snapshot, then cover new work with correction diffs. Preserve unpublished
+findings and verify/reanchor them at the current head before publication. Partial
+findings may publish without making coverage complete. The invocation authorizes
+automatic reviews, transitions, retries, recovery and formal publication without
+readiness or permission questions. Explicit user pauses apply.
 
-Reuse a published approval only when current base/head, configured settings,
-phase coverage and findings still match. A stale approval does not erase the
-completed full-pair checkpoint. Recheck current base/head before publication.
+Reuse approval only when current base/head, configured settings, phase coverage
+and findings still match. A stale approval does not erase the full-review
+checkpoint. Recheck current base/head before publication.
 
 Reviewers return independent verdicts and keep results compact. They batch related searches and focused reads, reuse retrieved evidence,
 and expand inspection when needed. Stable prompt prefixes, tool definitions and
