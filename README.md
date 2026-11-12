@@ -26,13 +26,13 @@ from the plugin's skill picker. Both names run the same external audit.
 
 ## Skills
 
-- `external-audit` Prepare the PR with screening diffs, then run one Anthropic full-PR
-  review for the broader review. After that review, finish with correction diffs only.
-  Required findings use formal reviews with deduplicated inline comments; approval
-  uses the private script. Models and settings live in
+- `external-audit` Start with one independent initial full review. Resolve findings
+  through contextual preparation diffs, then run one independent Anthropic full
+  review. Resolve its findings through contextual correction diffs and approve.
+  A clean full verdict skips its diff loop. Required findings use formal inline
+  reviews; approval uses the private script. Models and settings live in
   [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
-  The runtime must support the configured providers and settings; installing the
-  plugin alone does not add delegation or model access.
+  The runtime must support the configured providers and settings.
 - `self-improvement` Research and propose improvements to the user's local
   Claude Code instructions. This skill remains specific to Claude Code.
 
@@ -41,42 +41,46 @@ For direct skill installs, the audit commands are `/external-audit` and
 `xaudit` skill is a small alias that loads `external-audit`; it has no separate
 review instructions.
 
-Each review starts fresh without inherited conversation or earlier verdicts.
-Preparation uses the screening profile: first actual PR base-to-head, then its
-last completed screening SHA to current head. Once it accepts, only the Anthropic
-deep profile reviews the entire PR at a pinned base/head. There is no OpenAI full
-review. The full reviewer finishes the entire scope and collects all findings.
+Each review starts fresh. Both full stages receive only the prompt, repository/PR,
+profile, audit mode and range metadata, with no inherited conversation, task or
+implementation narrative, previous verdicts or finding checklist. They review the
+entire launch-time pinned PR base-to-head range. The parent retains historical
+findings that a fresh full reviewer was not given; they need explicit verification.
 
-Record the completed Anthropic checkpoint even when it rejects. After that,
-use only the OpenAI deep profile for correction diffs. The initial correction
-baseline is the full-reviewed head; this does not claim earlier OpenAI coverage.
-Later corrections use the last completed correction SHA to current head. Verify
-all findings, including Anthropic findings outside the delta. Complete correction
-acceptance with no open findings permits approval, without another Anthropic run.
-If full review accepts unchanged code with no findings, approve directly.
+Diff reviewers receive the problem, requirements, intended fix, rationale and
+prior findings, including evidence and closure conditions. They verify claims
+against code. Preparation diffs start at the completed initial full-review head;
+correction diffs start at the completed Anthropic full-review head. Later diffs
+use their own phase's last completed review SHA. Verify all findings, including
+those outside the delta. Complete diff acceptance advances to the next full stage
+or approval, according to the saved phase.
 
-Full review runs once per PR. Preserve its checkpoint and phase across sessions,
-ordinary re-reviews, new commits and rebases. After a verified upstream merge or
-rebase invalidates a cursor, review actual current base-to-head in the current
-diff phase. After the checkpoint, this stays a correction diff. Only an explicit
-request for another full review starts another cycle. A complete matching
-Anthropic full result from a previous dual-review cycle can supply the checkpoint.
-Fix code only when authorized; otherwise retain the phase and resume when fixes arrive.
+Each full stage runs once per PR. A complete rejection records its checkpoint and
+leads to contextual diff reviews, not another full run. A clean initial full review
+moves directly to Anthropic. A clean Anthropic review permits approval directly.
+After Anthropic findings, correction acceptance with every finding closed permits
+approval without another full review. Fix code only when authorized.
 
-Incomplete reviews retry fresh over the same assigned range, without advancing
-cursors or completing a phase. If the PR moves during full review, finish/retry
-its pinned snapshot, then cover new work with correction diffs. Preserve unpublished
-findings and verify/reanchor them at the current head before publication. Partial
-findings may publish without making coverage complete. The invocation authorizes
-automatic reviews, transitions, retries, recovery and formal publication without
+Preserve checkpoints and phase across sessions, re-reviews, new commits and rebases.
+A valid existing Anthropic checkpoint from an older workflow continues directly
+in corrections; do not retroactively insert the new initial stage. A verified
+upstream merge or rebase that invalidates a diff cursor uses actual current PR
+base-to-head in the current diff phase. Only an explicit request for another full
+review resets a completed stage.
+
+Incomplete reviews retry fresh over the same range with the mode's context policy.
+They do not advance cursors, permit fixes or complete a phase. In-flight full reviews
+finish their pinned snapshots even if the PR moves; the next diff phase covers new
+work and verifies/reanchors unpublished findings at current head. The invocation
+authorizes automatic stages, retries, range recovery and formal publication without
 readiness or permission questions. Explicit user pauses apply.
 
-Reuse approval only when current base/head, configured settings, phase coverage
-and findings still match. A stale approval does not erase the full-review
-checkpoint. Recheck current base/head before publication.
+Reuse approval only when current base/head, settings, phase coverage and findings
+still match. Recheck base/head before publication. Models and effort are configured
+only in the skill table.
 
 Reviewers return independent verdicts and keep results compact. They batch related searches and focused reads, reuse retrieved evidence,
-and expand inspection when needed. Stable prompt prefixes, tool definitions and
+and expand inspection when needed. Mode-specific context stays after stable prompt prefixes. Tool definitions and
 tool order support caching where the runtime permits. If configurable, cache
 lifetime follows expected reuse intervals and recorded usage; the skill does not
 invent cache controls or reduce reasoning effort. Supported tool discovery, filtered
