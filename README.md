@@ -90,8 +90,16 @@ These controls do not guarantee token savings.
 
 ## Review credentials and scripts
 
-`external-audit/approve` and `external-audit/request-changes` load `API_KEY`
-from the same adjacent `.env`. The PAT needs **Pull requests: Read and write**
+`external-audit/approve` and `external-audit/request-changes` load credentials
+from the same adjacent `.env`. `API_KEY` accepts one PAT or a comma-separated list.
+Each script randomly selects one PAT per invocation and uses it for all GitHub
+calls. Spaces around entries are trimmed; empty entries are rejected.
+
+```dotenv
+API_KEY="PAT_ONE,PAT_TWO,PAT_THREE"
+```
+
+Each PAT needs **Pull requests: Read and write**
 on the target repositories and must belong to an account other than the PR
 author. Configure `.env` separately in each installed copy; it is ignored by git
 and not shipped in the marketplace. Reviewers never load the credentials.

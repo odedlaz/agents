@@ -26,7 +26,9 @@ class RequestChangesTests(unittest.TestCase):
 import json, os, sys
 from pathlib import Path
 root = Path(os.environ['AUDIT_TEST_ROOT'])
-assert os.environ['GH_TOKEN'] == 'synthetic-review-token'
+assert os.environ['GH_TOKEN'] in os.environ.get('AUDIT_TEST_TOKENS', 'synthetic-review-token').split(',')
+with (root / 'tokens.jsonl').open('a') as log:
+    log.write(json.dumps(os.environ['GH_TOKEN']) + '\\n')
 args = sys.argv[1:]
 if 'POST' in args:
     assert 'repos/example/repo/pulls/123/reviews' in args
@@ -52,7 +54,7 @@ else:
                                      {"path": "src/cache.ts", "line": 5, "side": "LEFT",
                                       "body": "`stale-entry` Major: invalidate stale entries."}]}
 
-    def run_script(self, payload=None, stdin=False, url=URL, raw=None):
+    def run_script(self, payload=None, stdin=False, url=URL, raw=None, seed=0):
         self.assertTrue(SCRIPT.is_file(), "The request-changes executable must exist")
         executable = self.root / "request-changes"
         shutil.copy2(SCRIPT, executable)
@@ -60,8 +62,33 @@ else:
         target = "-" if stdin else str(self.root / "review.json")
         if not stdin:
             Path(target).write_text(content)
-        return subprocess.run([str(executable), url, target], input=content if stdin else None,
+        return subprocess.run(["/bin/bash", "-c", 'RANDOM=$1; source "$2" "$3" "$4"',
+                               "request-changes-test", str(seed), str(executable), url, target],
+                              input=content if stdin else None,
                               env=self.env, capture_output=True, text=True)
+
+    def test_randomly_selects_one_csv_token_for_the_whole_invocation(self):
+        (self.root / ".env").write_text('API_KEY="synthetic-one, synthetic-two ,synthetic-three"\n')
+        self.env['AUDIT_TEST_TOKENS'] = 'synthetic-one,synthetic-two,synthetic-three'
+        selected = set()
+        for seed in range(8):
+            with self.subTest(seed=seed):
+                result = self.run_script(seed=seed)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                tokens = [json.loads(line) for line in (self.root / 'tokens.jsonl').read_text().splitlines()][-3:]
+                self.assertEqual(len(set(tokens)), 1)
+                selected.add(tokens[0])
+                self.assertNotIn('synthetic-', result.stdout + result.stderr)
+        self.assertEqual(selected, {'synthetic-one', 'synthetic-two', 'synthetic-three'})
+
+    def test_rejects_empty_csv_entries_before_contacting_github(self):
+        for value in ['', ' ', ',synthetic-one', 'synthetic-one,', 'synthetic-one,,synthetic-two']:
+            with self.subTest(value=value):
+                (self.root / '.env').write_text('API_KEY="' + value + '"\n')
+                result = self.run_script()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse((self.root / 'tokens.jsonl').exists())
+                self.assertNotIn('synthetic-', result.stdout + result.stderr)
 
     def test_submits_inline_review_with_private_token(self):
         result = self.run_script()

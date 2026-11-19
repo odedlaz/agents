@@ -49,11 +49,21 @@ if ! source "$script_dir/.env" >/dev/null 2>&1; then
   exit 1
 fi
 set +x +v
-if [[ -z ${API_KEY:-} ]]; then
-  echo "API_KEY is missing or empty in .env." >&2
-  exit 1
-fi
-export GH_TOKEN="$API_KEY"
+api_keys=()
+remaining=${API_KEY:-}
+while :; do
+  key=${remaining%%,*}
+  key=${key#"${key%%[![:space:]]*}"}
+  key=${key%"${key##*[![:space:]]}"}
+  if [[ -z $key ]]; then
+    echo "API_KEY must contain one PAT or a comma-separated list without empty entries." >&2
+    exit 1
+  fi
+  api_keys+=("$key")
+  [[ $remaining == *,* ]] || break
+  remaining=${remaining#*,}
+done
+export GH_TOKEN="${api_keys[RANDOM % ${#api_keys[@]}]}"
 export GH_HOST=github.com
 unset GH_DEBUG
 
@@ -70,7 +80,7 @@ if [[ $head_sha != "$reviewed_head" ]]; then
   exit 1
 fi
 if [[ $reviewer == "$author" ]]; then
-  echo "The API_KEY account cannot request changes on its own pull request." >&2
+  echo "The selected PAT account cannot request changes on its own pull request." >&2
   exit 1
 fi
 

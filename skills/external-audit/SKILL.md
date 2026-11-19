@@ -94,7 +94,7 @@ After `approve-round` conditions hold, run the approval script once with the PR 
 EXTERNAL_AUDIT_REVIEWED_HEAD='REVIEWED_HEAD_SHA' 'APPROVE_SCRIPT_PATH' 'https://github.com/OWNER/REPO/pull/NUMBER'
 ```
 
-Both scripts load `API_KEY` from their adjacent `.env`. Do not read that file, load `~/.zshrc`, print credentials, or substitute normal-connection review calls. The PAT account must differ from the PR author. Never publish separate inline comments, top-level PR comments or an additional approval summary.
+Both scripts load `API_KEY` from their adjacent `.env`. It accepts one PAT or a comma-separated list; each script randomly selects one PAT per invocation and uses it for all GitHub calls. Do not read that file, load `~/.zshrc`, print credentials, or substitute normal-connection review calls. The selected PAT account must differ from the PR author. Never publish separate inline comments, top-level PR comments or an additional approval summary.
 
 If the live head moves during full review, record completed pinned coverage and its checkpoint separately from publication. Preserve unpublished findings, then verify and reanchor them at the current head during the next diff phase before submitting required findings. Do not submit a stale reviewed head or report unpublished findings as submitted. Publication failure does not prevent the diff review needed to recover current-head coverage.
 
