@@ -9,26 +9,26 @@ An invocation authorizes both one-time full stages, diff reviews, incomplete-rev
 
 ## Reviewer configuration
 
-Change models and settings only in this table. Use profile and role names elsewhere.
+Change models and settings only in this table. Use profile and role names elsewhere. The Model column names a family and tier, not a model ID: at run time, resolve it to the newest generally available model of that family and tier, excluding previews and betas.
 
 | Profile | Role | Provider | Model | Reasoning effort | Mode |
 | --- | --- | --- | --- | --- | --- |
-| `openai-deep` | `openai` | Codex | `gpt-6.1-sol` | high | regular |
-| `anthropic-deep` | `anthropic` | Anthropic | `claude-opus-5-5` | high | regular |
-| `openai-shallow` | `openai` | Codex | `gpt-6.1-sol` | low | regular |
-| `anthropic-shallow` | `anthropic` | Anthropic | `claude-opus-5-5` | low | regular |
+| `openai-deep` | `openai` | Codex | newest generally available GPT Sol | high | regular |
+| `anthropic-deep` | `anthropic` | Anthropic | newest generally available Claude Opus | high | regular |
+| `openai-shallow` | `openai` | Codex | newest generally available GPT Sol | low | regular |
+| `anthropic-shallow` | `anthropic` | Anthropic | newest generally available Claude Opus | low | regular |
 
 Start with `openai-deep`, mode `initial-full`, without inherited context. If findings remain, use contextual `openai-shallow` preparation diffs until acceptance. Then run `anthropic-deep`, mode `final-full`, without inherited context. If findings remain afterward, use contextual `openai-shallow` correction diffs until approval. Each full stage runs once per PR, including complete rejections. A clean full verdict skips that stage's diff loop. `anthropic-shallow` is inactive and retained for future configuration.
 
-Resolve provider IDs and supported options from runtime capabilities. Set model, effort and regular mode explicitly; do not inherit fast mode or substitute unavailable settings. Report concrete blockers. In T3 Code, call `orchestrator_capabilities` before the first `delegate_task`, pass settings in `target.options` and follow continuation instructions. Use supported delegation tools elsewhere. Every review or re-check starts a fresh agent, with context determined by audit mode below. Reviewers do not fix code or publish to GitHub.
+Resolve provider IDs, model IDs and supported options from runtime capabilities. Set the resolved model ID, effort and regular mode explicitly; do not inherit fast mode, substitute another family or tier, or substitute unavailable settings. Report concrete blockers. In T3 Code, call `orchestrator_capabilities` before the first `delegate_task`, pass settings in `target.options` and follow continuation instructions. Use supported delegation tools elsewhere. Every review or re-check starts a fresh agent, with context determined by audit mode below. Reviewers do not fix code or publish to GitHub.
 
 ## Track phase and coverage
 
-Keep a per-PR phase: `initial-review`, `preparation`, `full-review`, `corrections` or `approved`. Record current base/head, each full stage's pinned range, actual profile/settings, complete or partial coverage, verdict, findings and publication state. Keep separate preparation and correction diff cursors with their sources. Recover these records across requests and sessions; an ordinary re-review does not restart full stages.
+Keep a per-PR phase: `initial-review`, `preparation`, `full-review`, `corrections` or `approved`. Record current base/head, each full stage's pinned range, actual profile, resolved model ID and settings, complete or partial coverage, verdict, findings and publication state. Keep separate preparation and correction diff cursors with their sources. Recover these records across requests and sessions; an ordinary re-review does not restart full stages.
 
 A complete initial review establishes its checkpoint even on rejection and sets the preparation baseline to its reviewed head. A complete Anthropic full review establishes its checkpoint even on rejection and sets the correction baseline to its reviewed head. These baselines do not claim earlier shallow-profile coverage. Later complete diffs advance only the current phase's cursor, even on rejection or failed publication. Partial, cancelled, failed and interrupted work advances nothing. Preserve confirmed partial findings.
 
-Match history by actual model/settings, range, audit mode and coverage, not profile name alone. Reuse verdicts only while range, settings, relevant requirements and finding-closure evidence still match. Preserve findings from all older configurations. A matching completed OpenAI full review can establish the initial checkpoint regardless of its older stage label. A valid completed Anthropic checkpoint from an older workflow remains valid; continue corrections rather than retroactively adding an initial review. Missing checkpoint or cursor data must be recovered, not invented or silently reset.
+Match history by resolved model ID and actual settings, range, audit mode and coverage, not profile name alone. Reuse verdicts only while range, settings, relevant requirements and finding-closure evidence still match. Preserve findings from all older configurations. A matching completed OpenAI full review can establish the initial checkpoint regardless of its older stage label. A valid completed Anthropic checkpoint from an older workflow remains valid; continue corrections rather than retroactively adding an initial review. Missing checkpoint or cursor data must be recovered, not invented or silently reset.
 
 New commits or a changed base invalidate current acceptance but preserve completed checkpoints. Restart a completed full stage only when the user explicitly requests another full review. Neither a rejection, an ordinary re-review nor a general rescan does so.
 
