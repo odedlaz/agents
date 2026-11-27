@@ -1,9 +1,9 @@
 ---
-name: implementation-workflow
+name: ship-it
 description: Use when carrying implementation work through frequent commits, draft PR creation, simplicity and performance sweeps, external audit approval, and a mergeable PR.
 ---
 
-# Implementation Workflow
+# Ship It
 
 Commit early and often. Commit after every iteration and push every commit.
 If no PR exists, create a draft PR immediately after the first commit.

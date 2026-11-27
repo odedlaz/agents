@@ -33,7 +33,7 @@ from the plugin's skill picker. Both names run the same external audit.
   reviews; approval uses the private script. Models and settings live in
   [Reviewer configuration](skills/external-audit/SKILL.md#reviewer-configuration).
   The runtime must support the configured providers and settings.
-- `implementation-workflow` Commit and push each iteration, open a draft PR,
+- `ship-it` Commit and push each iteration, open a draft PR,
   finish simplicity and performance sweeps before external auditing, and drive
   the approved PR to a mergeable state. Requires `core:pr-style` for the final
   title and description rewrite.
